@@ -292,8 +292,14 @@ fun CalendarScreen() {
     }
 
     // 🔥 FIX: mesajul ține cont și de ora reală + se actualizează la tick
-    var progressText by remember(todayShift, tick) {
-        mutableStateOf(getShiftProgress(todayShift, now.toLocalTime()))
+    var progressText by remember { mutableStateOf("") }
+
+    LaunchedEffect(todayShift, tick) {
+        val refreshedNow = LocalDateTime.now()
+        progressText = getShiftProgress(
+            todayShift,
+            refreshedNow.toLocalTime()
+        )
     }
 
     // 🎯 Recalculăm mesajul când se schimbă tura "de azi"
