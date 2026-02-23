@@ -153,53 +153,56 @@ fun getEffectiveShift(now: LocalDateTime = LocalDateTime.now()): String {
     val today = now.toLocalDate()
     val time = now.toLocalTime()
 
-    // între 00:00–07:00 → verificăm dacă ieri a fost SC3
+    // 00:00–07:00 → dacă ieri a fost SC3, încă ești în SC3
     if (time < LocalTime.of(7, 0)) {
         val yesterdayShift = getShiftForDate(today.minusDays(1))
         if (yesterdayShift == "SC3") return "SC3"
     }
 
-    val todayShift = getShiftForDate(today)
-
-    // după 23:00 → începe SC3
-    if (todayShift == "SC3" && time >= LocalTime.of(23, 0)) {
-        return "SC3"
+    // 23:00–24:00 → dacă mâine este SC3, deja ai intrat în SC3
+    if (time >= LocalTime.of(23, 0)) {
+        val tomorrowShift = getShiftForDate(today.plusDays(1))
+        if (tomorrowShift == "SC3") return "SC3"
     }
 
-    return todayShift
+    return getShiftForDate(today)
 }
 
 fun getShiftProgress(shift: String, now: LocalTime = LocalTime.now()): String {
+    fun toMinutes(t: LocalTime) = t.hour * 60 + t.minute
 
-    val start = when (shift) {
-        "SC1" -> LocalTime.of(7, 0)
-        "SC2" -> LocalTime.of(15, 0)
-        "SC3" -> LocalTime.of(23, 0)
+    val startMin = when (shift) {
+        "SC1" -> 7 * 60
+        "SC2" -> 15 * 60
+        "SC3" -> 23 * 60
         else -> return messagesLIB.random()
     }
 
-    val end = when (shift) {
-        "SC1" -> LocalTime.of(15, 0)
-        "SC2" -> LocalTime.of(23, 0)
-        "SC3" -> LocalTime.of(7, 0).plusHours(24) // ✅ FIX
-        else -> start
+    val endMin = when (shift) {
+        "SC1" -> 15 * 60
+        "SC2" -> 23 * 60
+        "SC3" -> (7 * 60) + 24 * 60  // 07:00 next day => 1860
+        else -> startMin
     }
 
-    // ✅ Dacă e înainte de ora de start → ești acasă
-    if (shift == "SC3" && now.isBefore(start) && now >= LocalTime.of(7,0)) {
+    var nowMin = toMinutes(now)
+
+    // Dacă e SC3 și e după miezul nopții (00:00–06:59), îl împingem “în ziua următoare”
+    if (shift == "SC3" && nowMin < startMin) {
+        nowMin += 24 * 60
+    }
+
+    // Dacă e înainte de start → ești acasă (pentru SC1/SC2)
+    if (shift != "SC3" && nowMin < startMin) {
         return messages123.random()
     }
 
-    if (shift != "SC3" && now.isBefore(start)) {
+    // Dacă e SC3, dar e în fereastra 07:00–22:59 → ești acasă
+    if (shift == "SC3" && toMinutes(now) >= 7 * 60 && toMinutes(now) < 23 * 60) {
         return messages123.random()
     }
 
-    // Ajustare pentru ture peste miezul nopții
-    val nowAdjusted =
-        if (shift == "SC3" && now.isBefore(start)) now.plusHours(24)
-        else now
-
-    val remaining = Duration.between(nowAdjusted, end).toMinutes()
+    val remaining = endMin - nowMin
 
     if (remaining <= 0) {
         return """
@@ -208,10 +211,8 @@ GATA! Ești acasă, boss! 🎉
 """.trimIndent()
     }
 
-    // Dacă mai sunt sub 30 minute → mesaj de final random
     if (remaining <= 30) return messagesAlmostDone.random()
 
-    // Altfel → mesaj random în funcție de tură
     return when (shift) {
         "SC1" -> messagesSC1.random()
         "SC2" -> messagesSC2.random()
@@ -219,7 +220,6 @@ GATA! Ești acasă, boss! 🎉
         else -> messagesLIB.random()
     }
 }
-
 @Composable
 fun CalendarScreen() {
 
