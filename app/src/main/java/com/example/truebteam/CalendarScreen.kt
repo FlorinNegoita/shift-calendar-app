@@ -85,7 +85,8 @@ private val cycleStartDate = LocalDate.of(2025, 11, 3)
 
 // Dacă vrei să “simulezi că acum ești în SC2”, pune aici "SC2". Pentru normal, pune null.
 private val SIMULATE_SHIFT_TODAY: String? = null
-
+// 🔥 DEBUG TIME – pune aici ora pe care vrei să o testezi
+private val DEBUG_TIME: LocalDateTime? = null
 // ======================
 // ✅ CONCEDII (CO) – bagă manual aici datele
 // ======================
@@ -111,6 +112,16 @@ private val vacationDays = setOf(
     LocalDate.of(2026, 8, 21),
     LocalDate.of(2026, 8, 22),
     LocalDate.of(2026, 8, 23),
+    LocalDate.of(2026, 12, 23),
+    LocalDate.of(2026, 12, 24),
+    LocalDate.of(2026, 12, 25),
+    LocalDate.of(2026, 12, 26),
+    LocalDate.of(2026, 12, 27),
+    LocalDate.of(2026, 12, 28),
+    LocalDate.of(2026, 12, 29),
+    LocalDate.of(2026, 12, 30),
+    LocalDate.of(2026, 12, 31),
+
 )
 
 private val legalHolidays = setOf(
