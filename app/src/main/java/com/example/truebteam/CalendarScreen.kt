@@ -1,59 +1,106 @@
 package com.example.turecalendar.ui
-import java.time.LocalDateTime
+
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.togetherWith
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
-import java.time.Duration
-import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.YearMonth
-import java.time.format.TextStyle
-import java.time.temporal.ChronoUnit
-import java.util.Locale
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.delay
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.YearMonth
+import java.time.format.TextStyle as JavaTextStyle
+import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 private val messagesSC1 = listOf(
     "E devreme, dar măcar avem lumină și viață în oase.",
     "Cafeaua e colegul tău de tură. Ține-l aproape.",
     "Am venit primul. Plec primul. Șah mat, restul lumii.",
-    "Când alții încă dorm, noi deja ne întrebăm *de ce*."
+    "Când alții încă dorm, noi deja ne întrebăm de ce."
 )
 
 private val messagesSC2 = listOf(
     "Tura asta începe frumos și se termină… mai vedem noi.",
-    "Nu e nici zi, nici noapte. E *între lumi*. Aici locuim noi.",
+    "Nu e nici zi, nici noapte. E între lumi. Aici locuim noi.",
     "Ai ajuns la ora când oamenii mănâncă ciorbă. Tu lucrezi. Respect.",
     "Tura aceasta e ca un sandwich cu pâine prea groasă. Se digeră greu."
 )
 
 private val messagesSC3 = listOf(
-    "Felicitări. Modul *liliac profesional* este activ.",
-    "Când lumea doarme, tu calculezi secundele. Samurai al fluorescentei.",
+    "Felicitări. Modul liliac profesional este activ.",
+    "Când lumea doarme, tu calculezi secundele. Samurai al fluorescenței.",
     "Relație serioasă cu aparatul de cafea. Oficial.",
     "Noaptea e liniște. Tu doar... exiști. Profund."
 )
@@ -61,7 +108,7 @@ private val messagesSC3 = listOf(
 private val messagesLIB = listOf(
     "Respiră. Trăiește. Nu te mișca. E liber.",
     "Astăzi nu e tură. Astăzi ești pernuță.",
-    "Zi liberă = viața are opțiunea *demo* activată.",
+    "Zi liberă = viața are opțiunea demo activată.",
     "Azi iubești patul. Patul te iubește înapoi. Relație serioasă."
 )
 
@@ -73,25 +120,19 @@ private val messagesAlmostDone = listOf(
 )
 
 private val messages123 = listOf(
-    "Acum ești liber. Armata schimburilor încă nu te-a convocat.",
-    "Inca esti acasa. Munca nu te-a reperat...inca.",
-    "Acum ești liber. Planeta e încă în modul demo.",
-    "Așa arată viața fără șefi. Prețuiește-o.",
-    "Muncă? Da… dar nu încă. Acum ești în căldare low-power mode."
+    "Acum ești liber.",
+    "Șefii n-au găsit semnalul.",
+    "Momentan, fără stres.",
+    "Încă n-ai fost convocat.",
+    "Ești pe modul chill."
 )
 
-// Vrei ca luna Noiembrie să înceapă cu SC1
 private val cycleStartDate = LocalDate.of(2025, 11, 3)
 
-// Dacă vrei să “simulezi că acum ești în SC2”, pune aici "SC2". Pentru normal, pune null.
 private val SIMULATE_SHIFT_TODAY: String? = null
-// 🔥 DEBUG TIME – pune aici ora pe care vrei să o testezi
 private val DEBUG_TIME: LocalDateTime? = null
-// ======================
-// ✅ CONCEDII (CO) – bagă manual aici datele
-// ======================
+
 private val vacationDays = setOf(
-    // aici scrie zilele de concediu
     LocalDate.of(2026, 4, 10),
     LocalDate.of(2026, 4, 11),
     LocalDate.of(2026, 4, 12),
@@ -121,32 +162,42 @@ private val vacationDays = setOf(
     LocalDate.of(2026, 12, 29),
     LocalDate.of(2026, 12, 30),
     LocalDate.of(2026, 12, 31),
-
 )
 
 private val legalHolidays = setOf(
-    LocalDate.of(2026, 1, 1),   // Anul Nou
-    LocalDate.of(2026, 1, 2),   // A doua zi de Anul Nou
-    LocalDate.of(2026, 1, 6),   // Boboteaza
-    LocalDate.of(2026, 1, 7),   // Sf. Ion
-    LocalDate.of(2026, 1, 24),  // Unirea Principatelor
-    LocalDate.of(2026, 4, 13),   // Paste
-    LocalDate.of(2026, 4, 10),  // Vinerea MNare
-    LocalDate.of(2026, 4, 11),  // Paste
-    LocalDate.of(2026, 4, 12),   // Paste
-    LocalDate.of(2026, 5, 1),   // Ziua Muncii
-    LocalDate.of(2026, 5, 31),  // Rsusaliile
-    LocalDate.of(2026, 6, 1),   // Ziua Copilului, Rusalii
-    LocalDate.of(2026, 8, 15),  // Adormirea Maicii Domnului
-    LocalDate.of(2026, 11, 30), // Sf. Andrei
-    LocalDate.of(2026, 12, 1),  // Ziua Națională
-    LocalDate.of(2026, 12, 25), // Craciunul
-    LocalDate.of(2026, 12, 26)  //A doua zi de Craciun
+    LocalDate.of(2026, 1, 1),
+    LocalDate.of(2026, 1, 2),
+    LocalDate.of(2026, 1, 6),
+    LocalDate.of(2026, 1, 7),
+    LocalDate.of(2026, 1, 24),
+    LocalDate.of(2026, 4, 13),
+    LocalDate.of(2026, 4, 10),
+    LocalDate.of(2026, 4, 11),
+    LocalDate.of(2026, 4, 12),
+    LocalDate.of(2026, 5, 1),
+    LocalDate.of(2026, 5, 31),
+    LocalDate.of(2026, 6, 1),
+    LocalDate.of(2026, 8, 15),
+    LocalDate.of(2026, 11, 30),
+    LocalDate.of(2026, 12, 1),
+    LocalDate.of(2026, 12, 25),
+    LocalDate.of(2026, 12, 26)
 )
 
-private fun isVacation(date: LocalDate): Boolean = vacationDays.contains(date)
+private val BgTopLight = Color(0xFFF0F3F7)
+private val BgBase1 = Color(0xFF737ca1)
+private val BgBase2 = Color(0xFF36454f)
+private val SurfaceSoft = Color(0xFFECEFF3)
 
-// ✅ NOU: sărbători legale
+private val MonthBlue = Color(0xFF3B82F6)
+
+private val Sc1Color = Color(0xFF54B4D3)
+private val Sc2Color = Color(0xFFE4A11B)
+private val Sc3Color = Color(0xFFDC4C64)
+private val LibColor = Color(0xFF15803D)
+private val CoColor = Color(0xFF16A34A)
+
+private fun isVacation(date: LocalDate): Boolean = vacationDays.contains(date)
 private fun isLegalHoliday(date: LocalDate): Boolean = legalHolidays.contains(date)
 
 fun getShiftForDate(date: LocalDate): String {
@@ -164,13 +215,11 @@ fun getEffectiveShift(now: LocalDateTime = LocalDateTime.now()): String {
     val today = now.toLocalDate()
     val time = now.toLocalTime()
 
-    // 00:00–07:00 → dacă ieri a fost SC3, încă ești în SC3
     if (time < LocalTime.of(7, 0)) {
         val yesterdayShift = getShiftForDate(today.minusDays(1))
         if (yesterdayShift == "SC3") return "SC3"
     }
 
-    // 23:00–24:00 → dacă mâine este SC3, deja ai intrat în SC3
     if (time >= LocalTime.of(23, 0)) {
         val tomorrowShift = getShiftForDate(today.plusDays(1))
         if (tomorrowShift == "SC3") return "SC3"
@@ -192,23 +241,20 @@ fun getShiftProgress(shift: String, now: LocalTime = LocalTime.now()): String {
     val endMin = when (shift) {
         "SC1" -> 15 * 60
         "SC2" -> 23 * 60
-        "SC3" -> (7 * 60) + 24 * 60  // 07:00 next day => 1860
+        "SC3" -> (7 * 60) + 24 * 60
         else -> startMin
     }
 
     var nowMin = toMinutes(now)
 
-    // Dacă e SC3 și e după miezul nopții (00:00–06:59), îl împingem “în ziua următoare”
     if (shift == "SC3" && nowMin < startMin) {
         nowMin += 24 * 60
     }
 
-    // Dacă e înainte de start → ești acasă (pentru SC1/SC2)
     if (shift != "SC3" && nowMin < startMin) {
         return messages123.random()
     }
 
-    // Dacă e SC3, dar e în fereastra 07:00–22:59 → ești acasă
     if (shift == "SC3" && toMinutes(now) >= 7 * 60 && toMinutes(now) < 23 * 60) {
         return messages123.random()
     }
@@ -217,8 +263,7 @@ fun getShiftProgress(shift: String, now: LocalTime = LocalTime.now()): String {
 
     if (remaining <= 0) {
         return """
-GATA! Ești acasă, boss! 🎉
-...relax, relax, relax... 🍺
+GATA! Ești acasă....relax, relax, relax....
 """.trimIndent()
     }
 
@@ -231,13 +276,99 @@ GATA! Ești acasă, boss! 🎉
         else -> messagesLIB.random()
     }
 }
+
+private fun monthTitle(month: YearMonth): String {
+    return month.month.getDisplayName(JavaTextStyle.FULL, Locale.forLanguageTag("ro"))
+        .uppercase(Locale.forLanguageTag("ro")) + " ${month.year}"
+}
+
+private fun shiftTextColor(displayShift: String): Color {
+    return when (displayShift) {
+        "SC1" -> Sc1Color
+        "SC2" -> Sc2Color
+        "SC3" -> Sc3Color
+        "LIB" -> LibColor
+        "CO" -> CoColor
+        else -> Color(0xFF222222)
+    }
+}
+
+private fun shiftGlowColor(displayShift: String): Color {
+    return when (displayShift) {
+        "SC1" -> Sc1Color
+        "SC2" -> Sc2Color
+        "SC3" -> Sc3Color
+        "LIB" -> LibColor
+        "CO" -> CoColor
+        else -> Color.Transparent
+    }
+}
+
+private data class CalendarCell(
+    val date: LocalDate,
+    val day: Int,
+    val isCurrentMonth: Boolean
+)
+
+private fun Modifier.neuButtonShadow(
+    cornerRadius: Dp,
+    pressed: Boolean = false
+): Modifier = this.drawBehind {
+    val corner = cornerRadius.toPx()
+    val neoShadow = Color(0xFF98A0BC)
+
+    val white1 = if (pressed) 0.28f else 0.55f
+    val white2 = if (pressed) 0.10f else 0.22f
+    val white3 = if (pressed) 0.03f else 0.08f
+
+    val shadow1 = if (pressed) 0.42f else 0.90f
+    val shadow2 = if (pressed) 0.22f else 0.60f
+    val shadow3 = if (pressed) 0.12f else 0.34f
+
+    drawRoundRect(
+        color = Color.White.copy(alpha = white1),
+        topLeft = Offset((-1).dp.toPx(), (-1).dp.toPx()),
+        size = size,
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+    )
+    drawRoundRect(
+        color = Color.White.copy(alpha = white2),
+        topLeft = Offset((-2).dp.toPx(), (-2).dp.toPx()),
+        size = size,
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+    )
+    drawRoundRect(
+        color = Color.White.copy(alpha = white3),
+        topLeft = Offset((-3).dp.toPx(), (-3).dp.toPx()),
+        size = size,
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+    )
+
+    drawRoundRect(
+        color = neoShadow.copy(alpha = shadow1),
+        topLeft = Offset(3.dp.toPx(), 3.dp.toPx()),
+        size = size,
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+    )
+    drawRoundRect(
+        color = neoShadow.copy(alpha = shadow2),
+        topLeft = Offset(6.dp.toPx(), 6.dp.toPx()),
+        size = size,
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+    )
+    drawRoundRect(
+        color = neoShadow.copy(alpha = shadow3),
+        topLeft = Offset(9.dp.toPx(), 9.dp.toPx()),
+        size = size,
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+    )
+}
+
 @Composable
 fun CalendarScreen() {
-
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // ——— Auto-refresh: recompoziție la fiecare 10s ———
-    var tick by remember { mutableStateOf(0L) }
+    var tick by remember { mutableLongStateOf(0L) }
     LaunchedEffect(Unit) {
         while (true) {
             delay(10000L)
@@ -246,13 +377,12 @@ fun CalendarScreen() {
     }
 
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
-    var previousMonth by remember { mutableStateOf(currentMonth) }
     var direction by remember { mutableStateOf(1) }
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    var todayAnimationTrigger by remember { mutableStateOf(0) }
 
     fun changeMonth(newMonth: YearMonth) {
         direction = if (newMonth > currentMonth) 1 else -1
-        previousMonth = currentMonth
         currentMonth = newMonth
     }
 
@@ -261,16 +391,13 @@ fun CalendarScreen() {
     val normHours = remember(currentMonth) {
         (1..currentMonth.lengthOfMonth()).count { day ->
             val date = currentMonth.atDay(day)
-
-            val isWorkingDay =
-                date.dayOfWeek in listOf(
-                    DayOfWeek.MONDAY,
-                    DayOfWeek.TUESDAY,
-                    DayOfWeek.WEDNESDAY,
-                    DayOfWeek.THURSDAY,
-                    DayOfWeek.FRIDAY
-                )
-
+            val isWorkingDay = date.dayOfWeek in listOf(
+                DayOfWeek.MONDAY,
+                DayOfWeek.TUESDAY,
+                DayOfWeek.WEDNESDAY,
+                DayOfWeek.THURSDAY,
+                DayOfWeek.FRIDAY
+            )
             isWorkingDay && !isVacation(date)
         } * 8
     }
@@ -278,52 +405,27 @@ fun CalendarScreen() {
     val workedHours = remember(currentMonth) {
         (1..currentMonth.lengthOfMonth()).count { day ->
             val date = currentMonth.atDay(day)
-
-            val isWorkedShift =
-                getShiftForDate(date) in listOf("SC1", "SC2", "SC3")
-
+            val isWorkedShift = getShiftForDate(date) in listOf("SC1", "SC2", "SC3")
             isWorkedShift && !isVacation(date)
         } * 8
     }
 
     val overtime = workedHours - normHours
 
-    // 🔥 FIX: luăm timpul curent la fiecare recompoziție (tick forțează recompoziția)
-    val now = LocalDateTime.now()
-
-    // 🔥 FIX: scoatem remember(tick) și folosim getEffectiveShift(now)
+    val now = DEBUG_TIME ?: LocalDateTime.now()
     val todayShift = SIMULATE_SHIFT_TODAY ?: getEffectiveShift(now)
 
-    val themeBackground = when (todayShift) {
-        "SC1" -> Color(0xFFE8F6FF)
-        "SC2" -> Color(0xFFFFF3D6)
-        "SC3" -> Color(0xFFF7D6E8)
-        "LIB" -> Color(0xFFE3FFE8)
-        else -> Color.White
-    }
-
-    // 🔥 FIX: mesajul ține cont și de ora reală + se actualizează la tick
     var progressText by remember { mutableStateOf("") }
 
     LaunchedEffect(todayShift, tick) {
-        val refreshedNow = LocalDateTime.now()
-        progressText = getShiftProgress(
-            todayShift,
-            refreshedNow.toLocalTime()
-        )
-    }
-
-    // 🎯 Recalculăm mesajul când se schimbă tura "de azi"
-    LaunchedEffect(todayShift) {
-        val refreshedNow = LocalDateTime.now()
+        val refreshedNow = DEBUG_TIME ?: LocalDateTime.now()
         progressText = getShiftProgress(todayShift, refreshedNow.toLocalTime())
     }
 
-    // 🔄 Refresh mesaj când aplicația revine în prim-plan
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                val refreshedNow = LocalDateTime.now()
+                val refreshedNow = DEBUG_TIME ?: LocalDateTime.now()
                 val effectiveShift = SIMULATE_SHIFT_TODAY ?: getEffectiveShift(refreshedNow)
                 progressText = getShiftProgress(effectiveShift, refreshedNow.toLocalTime())
             }
@@ -332,254 +434,276 @@ fun CalendarScreen() {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    val overtimeText = when {
+        overtime > 0 -> "OVERTIME = $overtime ore"
+        overtime < 0 -> "OVERTIME = $overtime ore"
+        else -> "Frățioare, luna asta ești pe 0"
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(themeBackground)
-    ) {
-
-        // HEADER TEAM B
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .height(40.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(Color(0xFF8A2BE2), Color(0xFF00C9FF))
-                    )
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("TEAM B", color = Color.White, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-        }
-
-        // ——— OVERTIME ———
-        val overtimeText = when {
-            overtime > 0 -> "OVERTIME: = $overtime ore  💪"
-            overtime < 0 -> "OVERTIME: = $overtime ore  👎"
-            else -> "Frățioare, luna asta ești pe 0  😡 "
-        }
-
-        Text(
-            text = overtimeText,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 90.dp),
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Normal,
-            color = when {
-                overtime > 0 -> Color(0xFF000000)
-                overtime <= 0 -> Color(0xFFFF6A6A)
-                else -> Color.Black
-            }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(4.dp)
-                .background(
-                    Brush.horizontalGradient(
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFFF3E7DC),
+                        Color(0xFFEAE3E0),
+                        Color(0xFFD7E1F7),
+                        Color(0xFFBCCBFF)
+                    ),
+                    start = Offset(0f, 0f),
+                    end = Offset(1400f, 2400f)
+                )
+            )
+            .drawBehind {
+                // glow cald sus-stânga
+                drawCircle(
+                    brush = Brush.radialGradient(
                         colors = listOf(
-                            Color.Transparent,
-                            Color(0xFF2ECC71),
+                            Color(0xFFFFF6EF).copy(alpha = 0.95f),
+                            Color(0xFFF8E9DC).copy(alpha = 0.55f),
                             Color.Transparent
-                        )
+                        ),
+                        center = Offset(size.width * 0.10f, size.height * 0.08f),
+                        radius = size.minDimension * 0.42f
+                    ),
+                    radius = size.minDimension * 0.42f,
+                    center = Offset(size.width * 0.10f, size.height * 0.08f)
+                )
+
+                // lumină diagonală moale ca în referință
+                drawRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.34f),
+                            Color.White.copy(alpha = 0.18f),
+                            Color.Transparent
+                        ),
+                        start = Offset(size.width * 0.02f, size.height * 0.02f),
+                        end = Offset(size.width * 0.72f, size.height * 0.42f)
+                    ),
+                    topLeft = Offset.Zero,
+                    size = size
+                )
+
+                // glow rece jos-dreapta
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF8FA8FF).copy(alpha = 0.34f),
+                            Color(0xFFB7C6FF).copy(alpha = 0.16f),
+                            Color.Transparent
+                        ),
+                        center = Offset(size.width * 0.90f, size.height * 0.82f),
+                        radius = size.minDimension * 0.46f
+                    ),
+                    radius = size.minDimension * 0.46f,
+                    center = Offset(size.width * 0.90f, size.height * 0.82f)
+                )
+            }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(horizontal = 14.dp)
+                .padding(bottom = 80.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "TEAM B",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Normal,
+                letterSpacing = 3.sp,
+                color = Color(0xFFECF0F3),
+                style = TextStyle(
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.65f),
+                        offset = Offset(9f, 9f),
+                        blurRadius = 2f
                     )
                 )
-        )
+            )
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(horizontal = 16.dp)
-        ) {
+            Spacer(modifier = Modifier.height(4.dp))
 
-            // ——— BARĂ NAV LUNĂ ———
+            Text(
+                text = overtimeText,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (overtime > 0) Color(0xFF0F8A3B)
+                else if (overtime <= 0) Color(0xFFD65A5A)
+                else Color(0xFF555555)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(onClick = { changeMonth(currentMonth.minusMonths(1)) }) { Text("<") }
-                Text(
-                    currentMonth.month.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("ro")).uppercase() +
-                            " " + currentMonth.year,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
-                )
-                Button(onClick = { changeMonth(currentMonth.plusMonths(1)) }) { Text(">") }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { changeMonth(YearMonth.now()) }) { Text("Today") }
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ——— HEADER ZILE ———
-            val headerDays = listOf("Lu", "Ma", "Mi", "Jo", "Vi", "Sa", "Du")
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(7),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                userScrollEnabled = false,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp)
+                    .height(54.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                items(headerDays.size) { i ->
-                    DayBox(
-                        text = headerDays[i],
-                        background = Color.Transparent,
-                        borderColor = Color.Transparent,
-                        borderWidth = 0.dp,
-                        textAlignStart = true
-                    )
-                }
+                NavCircleButton(
+                    text = "‹",
+                    onClick = { changeMonth(currentMonth.minusMonths(1)) }
+                )
+
+                Text(
+                    text = monthTitle(currentMonth),
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MonthBlue
+                )
+
+                NavCircleButton(
+                    text = "›",
+                    onClick = { changeMonth(currentMonth.plusMonths(1)) }
+                )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            // ——— CALENDAR SLIDE ———
-            AnimatedContent(
-                targetState = currentMonth,
-                transitionSpec = {
-                    slideInHorizontally(
-                        animationSpec = tween(350),
-                        initialOffsetX = { fullWidth -> fullWidth * direction }
-                    ) togetherWith slideOutHorizontally(
-                        animationSpec = tween(350),
-                        targetOffsetX = { fullWidth -> -fullWidth * direction }
-                    )
+            SoftPillButton(
+                text = "Azi",
+                onClick = {
+                    changeMonth(YearMonth.now())
+                    todayAnimationTrigger++
                 }
-            ) { month ->
+            )
 
-                val first = month.atDay(1)
-                val offset = (first.dayOfWeek.value + 6) % 7
-                val prevDays = month.minusMonths(1).lengthOfMonth()
-
-                val leading = List(offset) { prevDays - offset + 1 + it }
-                val current = (1..month.lengthOfMonth()).toList()
-                val totalCells =
-                    if (leading.size + current.size > 35) 42 else 35
-                val trailing = (1..(totalCells - (leading.size + current.size))).toList()
-
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(7),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    // ✅ FIX: leading cells normale (nu redefinim DayBox aici)
-                    items(leading.size) { i ->
-                        DayBox(
-                            text = "${leading[i]}",
-                            background = Color.LightGray.copy(alpha = 0.12f),
-                            borderColor = Color.Black.copy(alpha = 0.2f),
-                            textAlignStart = true
-                        )
-                    }
-
-                    items(current.size) { i ->
-                        val day = current[i]
-                        val date = month.atDay(day)
-
-                        val realShift = getShiftForDate(date)
-                        val vacation = isVacation(date)
-
-                        // ✅ Afișare: CO peste ture (dar tura reală rămâne realShift)
-                        val displayShift = if (vacation) "CO" else realShift
-
-                        val bg = when {
-                            vacation -> Color(0xFFB39DDB).copy(alpha = 0.55f)
-                            realShift == "SC1" -> Color(0xFFADD8E6).copy(alpha = 0.90f)
-                            realShift == "SC2" -> Color(0xFFFFD580).copy(alpha = 0.45f)
-                            realShift == "SC3" -> Color(0xFFFFA8A8).copy(alpha = 0.45f)
-                            realShift == "LIB" -> Color(0xFF90EE90).copy(alpha = 0.45f)
-                            else -> Color.White
-                        }
-
-
-                        val isToday = (date == today)
-                        val border = if (isToday) Color.Red else Color.Black
-                        val borderW = if (isToday) 5.dp else 1.dp
-
-                        // ✅ DOAR sărbătorile legale = text roșu
-                        val textColor = if (isLegalHoliday(date)) Color.Red else Color.Black
-
-                        DayBox(
-                            text = "$day\n$displayShift",
-                            background = bg,
-                            borderColor = border,
-                            borderWidth = borderW,
-                            textAlignStart = true,
-                            textColor = textColor
-                        ) { selectedDate = date }
-                    }
-
-                    items(trailing.size) { i ->
-                        DayBox(
-                            text = "${trailing[i]}",
-                            background = Color.LightGray.copy(alpha = 0.12f),
-                            borderColor = Color.Black.copy(alpha = 0.2f),
-                            textAlignStart = true
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                LegendItem(Color(0xFFADD8E6), "SC1")
-                LegendItem(Color(0xFFFFD580), "SC2")
-                LegendItem(Color(0xFFFFA8A8), "SC3")
-                LegendItem(Color(0xFF90EE90), "LIBER")
-                LegendItem(Color(0xFFB39DDB), "CO")
+                listOf("LU", "MA", "MI", "JO", "VI", "SA", "DU").forEach { day ->
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = day,
+                            fontSize = 13.sp,
+                            color = Color(0xFF4A4A4A),
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp, bottom = 14.dp)
+            ) {
+                AnimatedContent(
+                    targetState = currentMonth,
+                    transitionSpec = {
+                        slideInHorizontally(
+                            animationSpec = tween(350, easing = FastOutSlowInEasing),
+                            initialOffsetX = { fullWidth -> fullWidth * direction }
+                        ) togetherWith slideOutHorizontally(
+                            animationSpec = tween(350, easing = FastOutSlowInEasing),
+                            targetOffsetX = { fullWidth -> -fullWidth * direction }
+                        )
+                    },
+                    label = "monthSlide"
+                ) { month ->
+                    val monthCells = remember(month) { buildCalendarCells(month) }
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(7),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        userScrollEnabled = false,
+                        contentPadding = PaddingValues(
+                            start = 0.dp,
+                            end = 0.dp,
+                            top = 10.dp,
+                            bottom = 8.dp
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp, bottom = 6.dp)
+                    ) {
+                        items(monthCells) { cell ->
+                            val realShift = getShiftForDate(cell.date)
+                            val vacation = isVacation(cell.date)
+                            val displayShift = if (vacation) "CO" else realShift
+                            val isToday = cell.date == today
+
+                            CalendarDayCell(
+                                dayNumber = cell.day,
+                                displayShift = displayShift,
+                                realShift = realShift,
+                                isOtherMonth = !cell.isCurrentMonth,
+                                isToday = isToday,
+                                isHoliday = isLegalHoliday(cell.date),
+                                animationTrigger = todayAnimationTrigger,
+                                onClick = { selectedDate = cell.date }
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        // ——— FOOTER ———
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(bottom = 50.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            LegendItem(Sc1Color, "SC1")
+            LegendItem(Sc2Color, "SC2")
+            LegendItem(Sc3Color, "SC3")
+            LegendItem(LibColor, "LIB")
+            LegendItem(CoColor, "CO")
+        }
+
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .border(2.dp, Color.Black)
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(Color(0xFF8FFF8E), Color(0xFF6AB8FF))
-                    )
-                )
-                .padding(12.dp),
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(bottom = 6.dp)
+                .padding(horizontal = 16.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    "Azi e ${today.dayOfMonth} ${
-                        today.month.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("ro"))
-                    } ${today.year}",
-                    fontSize = 20.sp,
+                    text = "Azi e ${
+                        today.dayOfWeek.getDisplayName(JavaTextStyle.FULL, Locale.forLanguageTag("ro"))
+                    }, ${today.dayOfMonth} ${
+                        today.month.getDisplayName(JavaTextStyle.FULL, Locale.forLanguageTag("ro"))
+                    }",
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = Color(0xFF293140),
+                    textAlign = TextAlign.Center
                 )
-
-                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text = progressText,
-                    fontSize = 20.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color.Black,
-                    textAlign = TextAlign.Center
+                    color = Color(0xFF333333),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 16.sp
                 )
             }
         }
@@ -592,60 +716,393 @@ fun CalendarScreen() {
 
             AlertDialog(
                 onDismissRequest = { selectedDate = null },
-                title = { Text("Zi selectată") },
+                title = {
+                    Text(
+                        text = "Zi selectată",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 text = {
                     Text(
                         buildString {
-                            append("Azi e ${date.dayOfMonth} ")
-                            append(date.month.getDisplayName(TextStyle.FULL, Locale.forLanguageTag("ro")))
+                            append("${date.dayOfMonth} ")
+                            append(date.month.getDisplayName(JavaTextStyle.FULL, Locale.forLanguageTag("ro")))
                             append(" ${date.year}\n")
                             append("Ești: $displayShift")
-                            if (vacation) append(" (tura: $realShift)")
+                            if (vacation) append(" (tura reală: $realShift)")
                         }
                     )
                 },
                 confirmButton = {
-                    Button(onClick = { selectedDate = null }) { Text("OK") }
-                }
+                    TextButton(onClick = { selectedDate = null }) {
+                        Text("OK")
+                    }
+                },
+                containerColor = Color(0xFFF3F6FA)
             )
         }
     }
 }
+private fun buildCalendarCells(month: YearMonth): List<CalendarCell> {
+    val first = month.atDay(1)
+    val offset = (first.dayOfWeek.value + 6) % 7
+
+    val prevMonth = month.minusMonths(1)
+    val prevMonthLength = prevMonth.lengthOfMonth()
+
+    val currentDays = (1..month.lengthOfMonth()).map {
+        CalendarCell(
+            date = month.atDay(it),
+            day = it,
+            isCurrentMonth = true
+        )
+    }
+
+    val leading = (0 until offset).map { i ->
+        val day = prevMonthLength - offset + 1 + i
+        CalendarCell(
+            date = prevMonth.atDay(day),
+            day = day,
+            isCurrentMonth = false
+        )
+    }
+
+    val totalCells = if (leading.size + currentDays.size > 35) 42 else 35
+    val trailingCount = totalCells - (leading.size + currentDays.size)
+
+    val nextMonth = month.plusMonths(1)
+    val trailing = (1..trailingCount).map { day ->
+        CalendarCell(
+            date = nextMonth.atDay(day),
+            day = day,
+            isCurrentMonth = false
+        )
+    }
+
+    return leading + currentDays + trailing
+}
 
 @Composable
-fun DayBox(
+private fun NavCircleButton(
     text: String,
-    background: Color,
-    borderColor: Color,
-    borderWidth: Dp = 1.dp,
-    textAlignStart: Boolean = false,
-    textColor: Color = Color.Black, // ✅ NOU (default negru)
-    onClick: () -> Unit = {}
+    onClick: () -> Unit
 ) {
-    Box(
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.93f else 1f,
+        animationSpec = spring(dampingRatio = 0.60f, stiffness = 700f),
+        label = "navButtonScale"
+    )
+
+    Button(
+        onClick = onClick,
+        interactionSource = interactionSource,
+        shape = CircleShape,
+        contentPadding = PaddingValues(0.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = SurfaceSoft,
+            contentColor = MonthBlue
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp
+        ),
         modifier = Modifier
-            .width(32.dp)
-            .height(52.dp)
-            .background(background)
-            .border(borderWidth, borderColor)
-            .clickable { onClick() }
-            .padding(start = 6.dp, top = 4.dp, end = 4.dp, bottom = 4.dp),
-        contentAlignment = if (textAlignStart) Alignment.TopStart else Alignment.Center
+            .size(42.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .neuButtonShadow(cornerRadius = 21.dp, pressed = isPressed)
+    ) {
+        Text(
+            text = text,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+@Composable
+private fun SoftPillButton(
+    text: String,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = 0.60f, stiffness = 700f),
+        label = "todayButtonScale"
+    )
+
+    Button(
+        onClick = onClick,
+        interactionSource = interactionSource,
+        shape = RoundedCornerShape(18.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = SurfaceSoft,
+            contentColor = MonthBlue
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp
+        ),
+        modifier = Modifier
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .neuButtonShadow(cornerRadius = 18.dp, pressed = isPressed)
     ) {
         Text(
             text = text,
             fontSize = 14.sp,
-            color = textColor, // ✅ NOU
-            textAlign = if (textAlignStart) TextAlign.Start else TextAlign.Center
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
 
 @Composable
-fun LegendItem(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(20.dp).background(color).border(1.dp, Color.Black))
-        Spacer(modifier = Modifier.width(6.dp))
-        Text(label)
+private fun CalendarDayCell(
+    dayNumber: Int,
+    displayShift: String,
+    realShift: String,
+    isOtherMonth: Boolean,
+    isToday: Boolean,
+    isHoliday: Boolean,
+    animationTrigger: Int,
+    onClick: () -> Unit
+) {
+    val glowColor = shiftGlowColor(displayShift)
+    val shiftColor = shiftTextColor(displayShift)
+
+    val scaleAnim = remember(isToday) { Animatable(1f) }
+    var startTodayAnimation by remember(isToday) { mutableStateOf(false) }
+
+    LaunchedEffect(isToday, animationTrigger) {
+        if (isToday) {
+            startTodayAnimation = false
+            scaleAnim.snapTo(1f)
+            delay(900)
+
+            startTodayAnimation = true
+
+            scaleAnim.animateTo(
+                targetValue = 1.72f,
+                animationSpec = tween(320, easing = FastOutSlowInEasing)
+            )
+
+            scaleAnim.animateTo(
+                targetValue = 1.38f,
+                animationSpec = tween(420, easing = FastOutSlowInEasing)
+            )
+
+            scaleAnim.animateTo(
+                targetValue = 1.52f,
+                animationSpec = tween(520, easing = FastOutSlowInEasing)
+            )
+        } else {
+            startTodayAnimation = false
+            scaleAnim.snapTo(1f)
+        }
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "todayBorderAnim")
+
+    val borderAnim by infiniteTransition.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "borderAlpha"
+    )
+
+    val neoShadow = Color(0xFF98abbe)
+    val baseAlpha = if (isOtherMonth) 0.42f else 1f
+    val dateColor = if (isHoliday && !isOtherMonth) Color(0xFFD32F2F) else Color(0xFF202020)
+
+    val borderColor = when {
+        isToday && startTodayAnimation -> Color(0xFFE53935).copy(alpha = borderAnim)
+        isToday -> Color(0xFFE53935).copy(alpha = 0.65f)
+        else -> Color.White.copy(alpha = 0.62f)
+    }
+
+    val glowPrimaryAlpha = when {
+        isToday && displayShift == "CO" -> 0.52f
+        displayShift == "CO" -> 0.64f
+        isToday -> 0.40f
+        else -> 0.20f
+    }
+
+    val glowSecondaryAlpha = when {
+        isToday && displayShift == "CO" -> 0.38f
+        displayShift == "CO" -> 0.34f
+        else -> 0.09f
+    }
+
+    val glowRadius = when {
+        displayShift == "CO" -> sizeAwareRadiusMultiplier(isToday = isToday, isCo = true)
+        else -> sizeAwareRadiusMultiplier(isToday = isToday, isCo = false)
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(baseAlpha)
+            .zIndex(if (isToday) 10f else 0f)
+            .graphicsLayer {
+                scaleX = scaleAnim.value
+                scaleY = scaleAnim.value
+            }
+            .drawBehind {
+                val corner = 8.dp.toPx()
+
+                drawRoundRect(
+                    color = Color.White.copy(alpha = 0.95f),
+                    topLeft = Offset((-2).dp.toPx(), (-2).dp.toPx()),
+                    size = size,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                )
+                drawRoundRect(
+                    color = Color.White.copy(alpha = 0.45f),
+                    topLeft = Offset((-4).dp.toPx(), (-4).dp.toPx()),
+                    size = size,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                )
+                drawRoundRect(
+                    color = Color.White.copy(alpha = 0.18f),
+                    topLeft = Offset((-7).dp.toPx(), (-7).dp.toPx()),
+                    size = size,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                )
+
+                drawRoundRect(
+                    color = neoShadow.copy(alpha = 0.90f),
+                    topLeft = Offset(3.dp.toPx(), 3.dp.toPx()),
+                    size = size,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                )
+                drawRoundRect(
+                    color = neoShadow.copy(alpha = 0.60f),
+                    topLeft = Offset(6.dp.toPx(), 6.dp.toPx()),
+                    size = size,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                )
+                drawRoundRect(
+                    color = neoShadow.copy(alpha = if (isToday) 0.36f else 0.34f),
+                    topLeft = Offset(9.dp.toPx(), 9.dp.toPx()),
+                    size = size,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                )
+            }
+            .clip(RoundedCornerShape(8.dp))
+            .background(SurfaceSoft)
+            .drawWithContent {
+                drawContent()
+
+                if (!isOtherMonth) {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                glowColor.copy(alpha = glowPrimaryAlpha),
+                                glowColor.copy(alpha = glowSecondaryAlpha),
+                                Color.Transparent
+                            ),
+                            center = center,
+                            radius = size.minDimension * glowRadius
+                        ),
+                        radius = size.minDimension * glowRadius,
+                        center = center
+                    )
+
+                    if (displayShift == "CO") {
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = if (isToday) 0.26f else 0.18f),
+                                    Color.White.copy(alpha = if (isToday) 0.10f else 0.07f),
+                                    Color.Transparent
+                                ),
+                                center = Offset(size.width * 0.34f, size.height * 0.30f),
+                                radius = size.minDimension * 0.62f
+                            ),
+                            radius = size.minDimension * 0.62f,
+                            center = Offset(size.width * 0.34f, size.height * 0.30f)
+                        )
+                    }
+                }
+            }
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .height(54.dp)
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = dayNumber.toString(),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Normal,
+                color = dateColor
+            )
+
+            if (!isOtherMonth) {
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = if (displayShift == "CO") "CO" else realShift,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = shiftColor,
+                    textAlign = TextAlign.Center,
+                    style = TextStyle(
+                        shadow = Shadow(
+                            color = glowColor.copy(alpha = if (displayShift == "CO") 0.16f else 0.10f),
+                            offset = Offset.Zero,
+                            blurRadius = if (displayShift == "CO") 2.2f else 1.5f
+                        )
+                    )
+                )
+            }
+        }
+    }
+}
+
+private fun sizeAwareRadiusMultiplier(isToday: Boolean, isCo: Boolean): Float {
+    return when {
+        isCo && isToday -> 1.10f
+        isCo -> 1.06f
+        isToday -> 0.98f
+        else -> 0.98f
+    }
+}
+@Composable
+private fun LegendItem(
+    color: Color,
+    label: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(12.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color)
+        )
+        Spacer(modifier = Modifier.width(2.dp))
+        Text(
+            text = label,
+            fontSize = 11.sp,
+            color = Color(0xFF555555)
+        )
     }
 }
