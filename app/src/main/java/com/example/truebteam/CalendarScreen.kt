@@ -1,10 +1,7 @@
 package com.example.turecalendar.ui
 
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -15,6 +12,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -31,11 +32,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -47,7 +47,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -87,9 +86,11 @@ import java.time.format.TextStyle as JavaTextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
-// ----------------------------------------------------
-// MESAJE AFIȘATE ÎN FUNCȚIE DE TURA CURENTĂ
-// ----------------------------------------------------
+// ------------------------------------------------------------
+// MESAJELE MOTIVAȚIONALE
+// aici e mica poezie industrială a aplicației:
+// un pic de încurajare, un pic de caterincă, cât să nu fie totul beton armat
+// ------------------------------------------------------------
 
 private val messagesSC1 = listOf(
     "Cafea și atac.",
@@ -132,27 +133,24 @@ private val messages123 = listOf(
     "Încă e liniște.",
     "Fără stres acum."
 )
-// ----------------------------------------------------
-// CONFIGURARE CICLU + DEBUG
-// ----------------------------------------------------
 
-// Data de început a ciclului de ture.
-// De aici se calculează modelul de 8 zile:
-// 2 x SC1, 2 x SC2, 2 x SC3, 2 x LIB
+// ------------------------------------------------------------
+// CONFIG DE CICLU
+// de aici începe toată șmecheria calendarului etern.
+// dacă baza e bună, tot restul dansează frumos.
+// ------------------------------------------------------------
+
 private val cycleStartDate = LocalDate.of(2025, 11, 3)
 
-// Poți simula manual o tură pentru test.
-// Ex: "SC1", "SC2", "SC3", "LIB"
-// Dacă este null, aplicația calculează normal.
+// pentru teste rapide; când e null, aplicația merge pe viața reală
 private val SIMULATE_SHIFT_TODAY: String? = null
-
-// Poți simula manual data și ora curentă pentru debug.
-// Dacă este null, folosește ora reală a telefonului.
 private val DEBUG_TIME: LocalDateTime? = null
 
-// ----------------------------------------------------
-// ZILE DE CONCEDIU
-// ----------------------------------------------------
+// ------------------------------------------------------------
+// CONCEDII
+// când omul e în CO, nu ne mai interesează tura reală.
+// pace, liniște și eventual o cafea băută fără alarmă.
+// ------------------------------------------------------------
 
 private val vacationDays = setOf(
     LocalDate.of(2026, 4, 10),
@@ -186,9 +184,10 @@ private val vacationDays = setOf(
     LocalDate.of(2026, 12, 31),
 )
 
-// ----------------------------------------------------
+// ------------------------------------------------------------
 // SĂRBĂTORI LEGALE
-// ----------------------------------------------------
+// zilele în care și calendarul știe că e rost de altă culoare.
+// ------------------------------------------------------------
 
 private val legalHolidays = setOf(
     LocalDate.of(2026, 1, 1),
@@ -210,42 +209,48 @@ private val legalHolidays = setOf(
     LocalDate.of(2026, 12, 26)
 )
 
-// ----------------------------------------------------
-// CULORI
-// ----------------------------------------------------
+// ------------------------------------------------------------
+// PALETA APLICAȚIEI
+// fiecare schimb cu personalitatea lui.
+// SC3 e roșu, că noaptea nu vine să glumească.
+// ------------------------------------------------------------
 
 private val SurfaceSoft = Color(0xFFECEFF3)
 private val MonthBlue = Color(0xFF3B82F6)
 
-private val Sc1Color = Color(0xFF60A5FA) // albastru deschis
-private val Sc2Color = Color(0xFFF59E0B) // amber cald
-private val Sc3Color = Color(0xFFEF4444) // roșu clar
-private val LibColor = Color(0xFF22C55E) // verde fresh
-private val CoColor = Color(0xFFA78BFA)  // lavandă relax
+private val Sc1Color = Color(0xFF60A5FA)
+private val Sc2Color = Color(0xFFF59E0B)
+private val Sc3Color = Color(0xFFEF4444)
+private val LibColor = Color(0xFF22C55E)
+private val CoColor = Color(0xFFA78BFA)
 
-// ----------------------------------------------------
-// FUNCȚII SIMPLE DE AJUTOR
-// ----------------------------------------------------
-
-// Verifică dacă o dată este concediu.
+// verificări simple, dar foarte folositoare;
+// genul de funcții mici care îți salvează nervii mai târziu
 private fun isVacation(date: LocalDate): Boolean = vacationDays.contains(date)
-
-// Verifică dacă o dată este sărbătoare legală.
 private fun isLegalHoliday(date: LocalDate): Boolean = legalHolidays.contains(date)
 
-// ----------------------------------------------------
-// LOGICA TURELOR
-// ----------------------------------------------------
+// culoarea de accent pentru popup-ul zilei selectate
+// adică să știe și dialogul cu cine ține
+private fun popupAccentColor(displayShift: String): Color {
+    return when (displayShift) {
+        "SC1" -> Sc1Color
+        "SC2" -> Sc2Color
+        "SC3" -> Sc3Color
+        "LIB" -> LibColor
+        "CO" -> CoColor
+        else -> MonthBlue
+    }
+}
 
-// Returnează tura pentru o anumită dată.
-// Modelul este:
-// ziua 0,1 = SC1
-// ziua 2,3 = SC2
-// ziua 4,5 = SC3
-// ziua 6,7 = LIB
+// ------------------------------------------------------------
+// LOGICA DE TURE
+// aici stă motorul principal:
+// 2 zile SC1, 2 zile SC2, 2 zile SC3, 2 zile LIB.
+// simplu, elegant, fără telenovelă.
+// ------------------------------------------------------------
+
 fun getShiftForDate(date: LocalDate): String {
     val d = ChronoUnit.DAYS.between(cycleStartDate, date)
-
     if (d < 0) return "LIB"
 
     return when ((d % 8).toInt()) {
@@ -256,21 +261,19 @@ fun getShiftForDate(date: LocalDate): String {
     }
 }
 
-// Returnează tura "efectivă" a momentului curent.
-// Important mai ales la SC3, deoarece trece peste miezul nopții.
+// aici nu ne uităm doar la zi, ci și la oră,
+// pentru că SC3 e o fiară specială: începe într-o zi și se termină în alta
 fun getEffectiveShift(now: LocalDateTime = LocalDateTime.now()): String {
     val today = now.toLocalDate()
     val time = now.toLocalTime()
 
-    // Dacă este înainte de 07:00 și ieri a fost SC3,
-    // încă ești în fereastra turei de noapte.
+    // înainte de 07:00, dacă ieri a fost SC3, încă ești în logica ei
     if (time < LocalTime.of(7, 0)) {
         val yesterdayShift = getShiftForDate(today.minusDays(1))
         if (yesterdayShift == "SC3") return "SC3"
     }
 
-    // Dacă este după 23:00 și mâine este SC3,
-    // intri în tura de noapte.
+    // după 23:00, dacă mâine e SC3, intrăm deja în modul liliac
     if (time >= LocalTime.of(23, 0)) {
         val tomorrowShift = getShiftForDate(today.plusDays(1))
         if (tomorrowShift == "SC3") return "SC3"
@@ -279,7 +282,12 @@ fun getEffectiveShift(now: LocalDateTime = LocalDateTime.now()): String {
     return getShiftForDate(today)
 }
 
-// Returnează un mesaj amuzant / contextual în funcție de tură și de ora curentă.
+// ------------------------------------------------------------
+// TEXTUL DE PROGRES AL TUREI
+// aici aplicația mai și vorbește cu omul,
+// nu doar afișează cifre ca un robot fără suflet.
+// ------------------------------------------------------------
+
 fun getShiftProgress(shift: String, now: LocalTime = LocalTime.now()): String {
     fun toMinutes(t: LocalTime) = t.hour * 60 + t.minute
 
@@ -299,18 +307,19 @@ fun getShiftProgress(shift: String, now: LocalTime = LocalTime.now()): String {
 
     var nowMin = toMinutes(now)
 
-    // Pentru SC3, dacă e după miezul nopții și înainte de 07:00,
-    // adăugăm 24h ca să putem calcula corect intervalul.
+    // pentru SC3, dacă e după miezul nopții, adăugăm 24h în calcule
+    // altfel matematica o ia pe câmpii
     if (shift == "SC3" && nowMin < startMin) {
         nowMin += 24 * 60
     }
 
-    // Dacă nu este încă începută tura pentru SC1/SC2.
+    // dacă nu e SC3 și încă n-a început tura, nu are rost să panicăm omul
     if (shift != "SC3" && nowMin < startMin) {
         return messages123.random()
     }
 
-    // Dacă e SC3, dar este în afara intervalului real de lucru.
+    // intervalul mort dintre 07:00 și 23:00 pentru SC3
+    // adică nu e tura activă, deci putem respira
     if (shift == "SC3" && toMinutes(now) >= 7 * 60 && toMinutes(now) < 23 * 60) {
         return messages123.random()
     }
@@ -331,14 +340,14 @@ fun getShiftProgress(shift: String, now: LocalTime = LocalTime.now()): String {
     }
 }
 
-// Construiește titlul lunii în română, cu litere mari.
+// titlul lunii, cu majuscule frumoase, să arate a calendar cu prestanță
 private fun monthTitle(month: YearMonth): String {
     return month.month
         .getDisplayName(JavaTextStyle.FULL, Locale.forLanguageTag("ro"))
         .uppercase(Locale.forLanguageTag("ro")) + " ${month.year}"
 }
 
-// Culoarea textului pentru codul turei din celulă.
+// culoarea textului de schimb din celulă
 private fun shiftTextColor(displayShift: String): Color {
     return when (displayShift) {
         "SC1" -> Sc1Color
@@ -350,7 +359,8 @@ private fun shiftTextColor(displayShift: String): Color {
     }
 }
 
-// Culoarea glow-ului pentru fiecare tip de tură.
+// glow-ul subtil al schimbului;
+// un fel de “uite-mă, dar cu bun-simț”
 private fun shiftGlowColor(displayShift: String): Color {
     return when (displayShift) {
         "SC1" -> Sc1Color
@@ -362,21 +372,33 @@ private fun shiftGlowColor(displayShift: String): Color {
     }
 }
 
-// ----------------------------------------------------
-// MODEL PENTRU O CELULĂ DIN CALENDAR
-// ----------------------------------------------------
+// text mai natural pentru popup;
+// sună mai omenesc decât să-i spui omului doar "SC2"
+private fun shiftDisplayName(shift: String): String {
+    return when (shift) {
+        "SC1" -> "schimbul 1"
+        "SC2" -> "schimbul 2"
+        "SC3" -> "schimbul 3"
+        "LIB" -> "liber"
+        "CO" -> "în concediu"
+        else -> shift
+    }
+}
 
+// model simplu pentru o celulă din calendar
+// fără figuri, doar ce ne trebuie
 private data class CalendarCell(
     val date: LocalDate,
     val day: Int,
     val isCurrentMonth: Boolean
 )
 
-// ----------------------------------------------------
-// MODIFIER PERSONALIZAT PENTRU UMBRA BUTOANELOR
-// ----------------------------------------------------
+// ------------------------------------------------------------
+// UMBRA NEUMORPHICĂ PENTRU BUTOANE
+// aici se face magia aia de buton “moale”, premium,
+// de zici că-l poți apăsa și cu sufletul, nu doar cu degetul.
+// ------------------------------------------------------------
 
-// Desenează manual o umbră stil neumorphic pentru butoane.
 private fun Modifier.neuButtonShadow(
     cornerRadius: Dp,
     pressed: Boolean = false
@@ -385,7 +407,7 @@ private fun Modifier.neuButtonShadow(
     val darkShadow = Color(0xFF98A0BC)
 
     if (!pressed) {
-        // buton ridicat
+        // lumină sus-stânga, ca în viață: speranța vine de acolo
         drawRoundRect(
             color = Color.White.copy(alpha = 0.55f),
             topLeft = Offset((-1).dp.toPx(), (-1).dp.toPx()),
@@ -405,6 +427,7 @@ private fun Modifier.neuButtonShadow(
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
         )
 
+        // umbra jos-dreapta, că fără ea totul pare lipit de perete
         drawRoundRect(
             color = darkShadow.copy(alpha = 0.90f),
             topLeft = Offset(2.dp.toPx(), 2.dp.toPx()),
@@ -424,7 +447,8 @@ private fun Modifier.neuButtonShadow(
             cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
         )
     } else {
-        // buton apăsat / inward
+        // la apăsare inversăm subtil senzația,
+        // să pară că butonul intră puțin în decor
         drawRoundRect(
             color = darkShadow.copy(alpha = 0.28f),
             topLeft = Offset((-1).dp.toPx(), (-1).dp.toPx()),
@@ -464,17 +488,14 @@ private fun Modifier.neuButtonShadow(
         )
     }
 }
-// ----------------------------------------------------
-// ECRANUL PRINCIPAL AL CALENDARULUI
-// ----------------------------------------------------
 
 @Composable
 fun CalendarScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Tick periodic ca să se actualizeze mesajul și data curentă.
+    // ticker discret ca să reîmprospătăm mesajul de progres din când în când
+    // fără să stea app-ul cu capul în nori
     var tick by remember { mutableLongStateOf(0L) }
-
     LaunchedEffect(Unit) {
         while (true) {
             delay(10_000L)
@@ -482,28 +503,25 @@ fun CalendarScreen() {
         }
     }
 
-    // Luna afișată în prezent.
+    // state-ul principal al ecranului
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
-
-    // Direcția animației de glisare între luni.
     var direction by remember { mutableStateOf(1) }
-
-    // Data selectată pentru popup.
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
-
-    // Trigger folosit ca să repornească animația pe celula "azi".
     var todayAnimationTrigger by remember { mutableStateOf(0) }
 
+    // schimbarea lunii + direcția animației
     fun changeMonth(newMonth: YearMonth) {
         direction = if (newMonth > currentMonth) 1 else -1
         currentMonth = newMonth
     }
 
-    // "Astăzi" se recalculează la fiecare tick.
     val today = remember(tick) { LocalDate.now() }
 
-    // Ore normate pentru luna curentă.
-    // Se consideră zile lucrătoare luni-vineri, minus concediile.
+    // ------------------------------------------------------------
+    // CALCUL ORE NORMĂ
+    // luăm doar zilele lucrătoare de luni până vineri,
+    // și excludem concediul, că n-avem chiar inimă de piatră.
+    // ------------------------------------------------------------
     val normHours = remember(currentMonth) {
         (1..currentMonth.lengthOfMonth()).count { day ->
             val date = currentMonth.atDay(day)
@@ -518,7 +536,7 @@ fun CalendarScreen() {
         } * 8
     }
 
-    // Ore lucrate efectiv în funcție de turele din lună, minus concediile.
+    // ore efectiv lucrate în lună după logica de ture
     val workedHours = remember(currentMonth) {
         (1..currentMonth.lengthOfMonth()).count { day ->
             val date = currentMonth.atDay(day)
@@ -529,18 +547,20 @@ fun CalendarScreen() {
 
     val overtime = workedHours - normHours
 
+    // timp real sau timp simulat, după chef și nevoie de debug
     val now = DEBUG_TIME ?: LocalDateTime.now()
     val todayShift = SIMULATE_SHIFT_TODAY ?: getEffectiveShift(now)
 
     var progressText by remember { mutableStateOf("") }
 
-    // Actualizare mesaj status tură la fiecare tick.
+    // actualizăm textul de progres la fiecare tick sau schimbare relevantă
     LaunchedEffect(todayShift, tick) {
         val refreshedNow = DEBUG_TIME ?: LocalDateTime.now()
         progressText = getShiftProgress(todayShift, refreshedNow.toLocalTime())
     }
 
-    // Reîmprospătare la revenirea aplicației în prim-plan.
+    // când revine aplicația în prim-plan, refacem mesajul
+    // să nu rămână blocat în trecut ca un unchi care povestește armata
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -551,19 +571,22 @@ fun CalendarScreen() {
         }
 
         lifecycleOwner.lifecycle.addObserver(observer)
-
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
-    // Textul de overtime afișat sub titlu.
     val overtimeText = when {
         overtime > 0 -> "OVERTIME = $overtime ore"
         overtime < 0 -> "OVERTIME = $overtime ore"
         else -> "Frățioare, luna asta ești pe 0"
     }
 
+    // ------------------------------------------------------------
+    // CONTAINERUL MARE AL ECRANULUI
+    // aici intră tot decorul: fundalul, lumina, atmosfera.
+    // pe scurt: hainele bune ale calendarului.
+    // ------------------------------------------------------------
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -580,7 +603,7 @@ fun CalendarScreen() {
                 )
             )
             .drawBehind {
-                // Glow cald în zona sus-stânga.
+                // lumină caldă sus-stânga — colțul ăla “premium”
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
@@ -595,7 +618,7 @@ fun CalendarScreen() {
                     center = Offset(size.width * 0.10f, size.height * 0.08f)
                 )
 
-                // Lumină diagonală soft.
+                // voal subtil peste fundal, să nu pară “plat ca foaia de tablă”
                 drawRect(
                     brush = Brush.linearGradient(
                         colors = listOf(
@@ -610,7 +633,7 @@ fun CalendarScreen() {
                     size = size
                 )
 
-                // Glow rece jos-dreapta.
+                // pată rece jos-dreapta, ca să echilibrăm povestea vizuală
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
@@ -626,9 +649,10 @@ fun CalendarScreen() {
                 )
             }
     ) {
-        // ------------------------------------------------
+        // ------------------------------------------------------------
         // CONȚINUTUL PRINCIPAL
-        // ------------------------------------------------
+        // header, overtime, navigație lună, butonul Azi și grila calendarului.
+        // ------------------------------------------------------------
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -639,7 +663,7 @@ fun CalendarScreen() {
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Titlul aplicației.
+            // titlul aplicației – simplu, aerisit, cu umbră serioasă
             Text(
                 text = "TEAM B",
                 fontSize = 24.sp,
@@ -657,7 +681,7 @@ fun CalendarScreen() {
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Text overtime.
+            // mesajul de overtime – adevărul gol-goluț, dar frumos colorat
             Text(
                 text = overtimeText,
                 fontSize = 14.sp,
@@ -671,7 +695,10 @@ fun CalendarScreen() {
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Navigare lună: stânga - titlu lună - dreapta
+            // ------------------------------------------------------------
+            // NAVIGAȚIA LUNII
+            // stânga, titlu, dreapta – sfânta treime a calendarului.
+            // ------------------------------------------------------------
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -701,7 +728,8 @@ fun CalendarScreen() {
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Buton pentru revenire rapidă la luna curentă.
+            // butonul care te aduce înapoi la prezent,
+            // că uneori omul pleacă prin luni viitoare și trebuie readus cu blândețe
             SoftPillButton(
                 text = "Azi",
                 onClick = {
@@ -712,7 +740,7 @@ fun CalendarScreen() {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Header zile săptămână.
+            // antetul zilelor săptămânii
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -736,7 +764,11 @@ fun CalendarScreen() {
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Zona calendarului animat.
+            // ------------------------------------------------------------
+            // ZONA GRILEI CALENDARULUI
+            // luna intră și iese cu animație fină,
+            // ca un actor care știe când să apară pe scenă.
+            // ------------------------------------------------------------
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -750,10 +782,8 @@ fun CalendarScreen() {
                                     animationSpec = tween(620, easing = FastOutSlowInEasing),
                                     initialOffsetX = { fullWidth -> (fullWidth * 0.18f).toInt() * direction }
                                 ) +
-                                        androidx.compose.animation.fadeIn(
-                                            animationSpec = tween(500)
-                                        ) +
-                                        androidx.compose.animation.scaleIn(
+                                        fadeIn(animationSpec = tween(500)) +
+                                        scaleIn(
                                             initialScale = 0.985f,
                                             animationSpec = tween(420, easing = FastOutSlowInEasing)
                                         )
@@ -762,10 +792,8 @@ fun CalendarScreen() {
                                     animationSpec = tween(420, easing = FastOutSlowInEasing),
                                     targetOffsetX = { fullWidth -> -(fullWidth * 0.18f).toInt() * direction }
                                 ) +
-                                        androidx.compose.animation.fadeOut(
-                                            animationSpec = tween(380)
-                                        ) +
-                                        androidx.compose.animation.scaleOut(
+                                        fadeOut(animationSpec = tween(380)) +
+                                        scaleOut(
                                             targetScale = 0.985f,
                                             animationSpec = tween(320, easing = FastOutSlowInEasing)
                                         )
@@ -793,6 +821,9 @@ fun CalendarScreen() {
                         items(monthCells) { cell ->
                             val realShift = getShiftForDate(cell.date)
                             val vacation = isVacation(cell.date)
+
+                            // dacă e concediu, afișăm CO.
+                            // tura reală o știm noi, dar nu ne mai doare acum.
                             val displayShift = if (vacation) "CO" else realShift
                             val isToday = cell.date == today
 
@@ -812,9 +843,10 @@ fun CalendarScreen() {
             }
         }
 
-        // ------------------------------------------------
+        // ------------------------------------------------------------
         // LEGENDA
-        // ------------------------------------------------
+        // jos, frumos, cuminte, să știe omul dintr-o privire ce culoare cu ce se ceartă.
+        // ------------------------------------------------------------
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -831,9 +863,10 @@ fun CalendarScreen() {
             LegendItem(CoColor, "CO")
         }
 
-        // ------------------------------------------------
-        // TEXTUL DE JOS: AZI E...
-        // ------------------------------------------------
+        // ------------------------------------------------------------
+        // FOOTERUL ZILEI CURENTE
+        // mic rezumat elegant: azi ce zi e și ce simte tura despre asta.
+        // ------------------------------------------------------------
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -873,9 +906,11 @@ fun CalendarScreen() {
             }
         }
 
-        // ------------------------------------------------
-        // DIALOG PENTRU ZIUA SELECTATĂ
-        // ------------------------------------------------
+        // ------------------------------------------------------------
+        // POPUP-UL ZILEI SELECTATE
+        // apeși pe o zi și primești verdictul:
+        // ce ai fost, ce ești sau ce urmează să fii.
+        // ------------------------------------------------------------
         if (selectedDate != null) {
             val date = selectedDate!!
             val realShift = getShiftForDate(date)
@@ -884,53 +919,129 @@ fun CalendarScreen() {
 
             AlertDialog(
                 onDismissRequest = { selectedDate = null },
-                title = {
-                    Text(
-                        text = "Zi selectată",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                text = {
-                    Text(
-                        buildString {
-                            append("${date.dayOfMonth} ")
-                            append(
-                                date.month.getDisplayName(
-                                    JavaTextStyle.FULL,
-                                    Locale.forLanguageTag("ro")
-                                )
-                            )
-                            append(" ${date.year}\n")
-                            append("Ești: $displayShift")
+                icon = {
 
-                            if (vacation) {
-                                append(" (tura reală: $realShift)")
-                            }
-                        }
-                    )
                 },
-                confirmButton = {
-                    TextButton(onClick = { selectedDate = null }) {
-                        Text("OK")
+                title = {
+                    Column {
+                        Text(
+                            text = "Zi selectată",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = popupAccentColor(displayShift)
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // linia mică de accent – detaliu mic, efect mare
+                        Box(
+                            modifier = Modifier
+                                .height(3.dp)
+                                .fillMaxWidth(0.35f)
+                                .clip(RoundedCornerShape(99.dp))
+                                .background(popupAccentColor(displayShift).copy(alpha = 0.75f))
+                        )
                     }
                 },
-                containerColor = Color(0xFFF3F6FA)
+                text = {
+                    val naturalShift = shiftDisplayName(displayShift)
+
+                    val shiftSentence = when {
+                        date.isBefore(today) -> "Ai fost $naturalShift"
+                        date.isEqual(today) -> "Ești $naturalShift"
+                        else -> "O să fii $naturalShift"
+                    }
+
+                    // textul cu personalitate – nu mult, nu puțin, cât să zâmbești
+                    val funnyText = when {
+                        vacation && date.isBefore(today) -> "Ai fost în concediu. Elegant."
+                        vacation && date.isEqual(today) -> "Ești în concediu. Trăiești corect."
+                        vacation && date.isAfter(today) -> "Libertateeee. Ține-te bine."
+
+                        displayShift == "LIB" && date.isBefore(today) -> "Ai avut o zi de respiro."
+                        displayShift == "LIB" && date.isEqual(today) -> "Azi nu te deranjează fabrica."
+                        displayShift == "LIB" && date.isAfter(today) -> "Se vede o pauză frumoasă la orizont."
+
+                        displayShift == "SC1" && date.isBefore(today) -> "Ai învins dimineața."
+                        displayShift == "SC1" && date.isEqual(today) -> "Cafeaua încă lucrează pentru tine."
+                        displayShift == "SC1" && date.isAfter(today) -> "Pregătește cafeaua și curajul."
+
+                        displayShift == "SC2" && date.isBefore(today) -> "Ai dus-o până la capăt."
+                        displayShift == "SC2" && date.isEqual(today) -> "Tura elastică e în desfășurare."
+                        displayShift == "SC2" && date.isAfter(today) -> "Urmează partea aia ciudată a zilei."
+
+                        displayShift == "SC3" && date.isBefore(today) -> "Ai fost soldatul neonului."
+                        displayShift == "SC3" && date.isEqual(today) -> "Mod liliac profesional: activ."
+                        displayShift == "SC3" && date.isAfter(today) -> "Noaptea te așteaptă la program."
+
+                        else -> ""
+                    }
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "${date.dayOfMonth} ${
+                                date.month.getDisplayName(JavaTextStyle.FULL, Locale.forLanguageTag("ro"))
+                            } ${date.year}",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF1F2937)
+                        )
+
+                        Text(
+                            text = shiftSentence,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = popupAccentColor(displayShift)
+                        )
+
+                        if (funnyText.isNotBlank()) {
+                            Text(
+                                text = funnyText,
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp,
+                                color = Color(0xFF4B5563)
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { selectedDate = null },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = popupAccentColor(displayShift),
+                            contentColor = Color.White
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 0.dp,
+                            pressedElevation = 0.dp
+                        )
+                    ) {
+                        Text(
+                            text = "OK",
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                },
+                shape = RoundedCornerShape(28.dp),
+                containerColor = Color(0xFFF7F9FC),
+                tonalElevation = 0.dp
             )
         }
     }
 }
 
-// ----------------------------------------------------
-// CONSTRUIREA CELULELOR CALENDARULUI
-// ----------------------------------------------------
-
-// Creează lista completă de celule pentru lună,
-// inclusiv zilele din luna precedentă și următoare,
-// astfel încât grila să aibă 5 sau 6 rânduri complete.
+// ------------------------------------------------------------
+// CONSTRUCȚIA CELULELOR CALENDARULUI
+// punem zilele lunii curente, plus cele de umplere din luna anterioară și următoare,
+// ca grila să stea dreaptă și demnă, nu șchioapă.
+// ------------------------------------------------------------
 private fun buildCalendarCells(month: YearMonth): List<CalendarCell> {
     val first = month.atDay(1)
 
-    // Transformare astfel încât luni = 0, marți = 1, ..., duminică = 6
+    // mutăm începutul săptămânii pe luni
     val offset = (first.dayOfWeek.value + 6) % 7
 
     val prevMonth = month.minusMonths(1)
@@ -953,6 +1064,7 @@ private fun buildCalendarCells(month: YearMonth): List<CalendarCell> {
         )
     }
 
+    // 5 sau 6 rânduri, după caz; nu forțăm luna să încapă unde nu vrea
     val totalCells = if (leading.size + currentDays.size > 35) 42 else 35
     val trailingCount = totalCells - (leading.size + currentDays.size)
 
@@ -968,10 +1080,6 @@ private fun buildCalendarCells(month: YearMonth): List<CalendarCell> {
     return leading + currentDays + trailing
 }
 
-// ----------------------------------------------------
-// BUTON CERC PENTRU NAVIGAREA LUNILOR
-// ----------------------------------------------------
-
 @Composable
 private fun NavCircleButton(
     text: String,
@@ -980,6 +1088,8 @@ private fun NavCircleButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
+    // o mică animație de scalare la apăsare;
+    // adică feedback bun, nu apăsat “în gol”
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.93f else 1f,
         animationSpec = spring(dampingRatio = 0.60f, stiffness = 700f),
@@ -1014,10 +1124,6 @@ private fun NavCircleButton(
         )
     }
 }
-
-// ----------------------------------------------------
-// BUTON TIP PILL PENTRU "AZI"
-// ----------------------------------------------------
 
 @Composable
 private fun SoftPillButton(
@@ -1060,10 +1166,6 @@ private fun SoftPillButton(
     }
 }
 
-// ----------------------------------------------------
-// CELULA ZILEI DIN CALENDAR
-// ----------------------------------------------------
-
 @Composable
 private fun CalendarDayCell(
     dayNumber: Int,
@@ -1078,18 +1180,17 @@ private fun CalendarDayCell(
     val glowColor = shiftGlowColor(displayShift)
     val shiftColor = shiftTextColor(displayShift)
 
-    // Animația de scalare pentru ziua curentă.
+    // animăm ziua curentă ca să iasă în evidență
+    // vedeta lunii trebuie să intre în scenă cum se cuvine
     val scaleAnim = remember(isToday) { Animatable(1f) }
-
-    // Controlează dacă bordura pulsantă este activă.
     var startTodayAnimation by remember(isToday) { mutableStateOf(false) }
 
-    // Animație specială pentru ziua de azi.
     LaunchedEffect(isToday, animationTrigger) {
         if (isToday) {
             startTodayAnimation = false
             scaleAnim.snapTo(1f)
 
+            // mică pauză înainte de “respirația” vizuală
             delay(900)
 
             startTodayAnimation = true
@@ -1114,18 +1215,20 @@ private fun CalendarDayCell(
         }
     }
 
-    // Animație infinită pentru alpha-ul bordurii la "azi".
+    // animațiile infinite pentru border-ul zilei de azi
+    // pulsează discret, nu ca pomul de Crăciun
     val infiniteTransition = rememberInfiniteTransition(label = "todayBorderAnim")
 
     val borderAnim by infiniteTransition.animateFloat(
         initialValue = 0.45f,
-        targetValue = 2f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "borderAlpha"
     )
+
     val borderWidthAnim by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.7f,
@@ -1137,26 +1240,24 @@ private fun CalendarDayCell(
     )
 
     val neoShadow = Color(0xFF98ABBE)
-
-    // Zilele din altă lună sunt mai fade.
     val baseAlpha = if (isOtherMonth) 0.42f else 1f
 
-    // Dacă este sărbătoare legală și e în luna curentă, ziua e roșie.
+    // sărbătorile legale ies în roșu, că merită tratament special
     val dateColor = if (isHoliday && !isOtherMonth) {
         Color(0xFFD32F2F)
     } else {
         Color(0xFF202020)
     }
 
-    // Bordura e specială pentru "azi".
     val borderColor = when {
         isToday && startTodayAnimation -> Color(0xFFE53935).copy(alpha = borderAnim)
         isToday -> Color(0xFFE53935).copy(alpha = 0.65f)
-        isOtherMonth -> Color(0xFF000000).copy(alpha = 0.95f)
+        isOtherMonth -> Color(0xFFB8C0CC).copy(alpha = 0.65f)
         else -> Color.White.copy(alpha = 0.42f)
     }
 
-    // Intensitatea glow-ului principal.
+    // intensitatea glow-ului în funcție de ce afișăm
+    // CO are tratament un pic mai special, că merită
     val glowPrimaryAlpha = when {
         isToday && displayShift == "CO" -> 0.52f
         displayShift == "CO" -> 0.64f
@@ -1164,14 +1265,12 @@ private fun CalendarDayCell(
         else -> 0.20f
     }
 
-    // Intensitatea glow-ului secundar.
     val glowSecondaryAlpha = when {
         isToday && displayShift == "CO" -> 0.38f
         displayShift == "CO" -> 0.34f
         else -> 0.09f
     }
 
-    // Raza glow-ului în funcție de context.
     val glowRadius = when {
         displayShift == "CO" -> sizeAwareRadiusMultiplier(isToday = isToday, isCo = true)
         else -> sizeAwareRadiusMultiplier(isToday = isToday, isCo = false)
@@ -1189,7 +1288,7 @@ private fun CalendarDayCell(
             .drawBehind {
                 val corner = 8.dp.toPx()
 
-                // Highlight sus-stânga.
+                // highlight-ul alb de sus-stânga
                 drawRoundRect(
                     color = Color.White.copy(alpha = 0.95f),
                     topLeft = Offset((-2).dp.toPx(), (-2).dp.toPx()),
@@ -1209,7 +1308,7 @@ private fun CalendarDayCell(
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
                 )
 
-                // Umbra jos-dreapta.
+                // umbra inferioară – partea care dă volum și “carne” celulei
                 drawRoundRect(
                     color = neoShadow.copy(alpha = 0.90f),
                     topLeft = Offset(3.dp.toPx(), 3.dp.toPx()),
@@ -1235,7 +1334,7 @@ private fun CalendarDayCell(
                 drawContent()
 
                 if (!isOtherMonth) {
-                    // Glow colorat după tipul turei.
+                    // glow-ul de schimb – subtil, colorat, viu
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -1250,7 +1349,8 @@ private fun CalendarDayCell(
                         center = center
                     )
 
-                    // Glow extra pentru CO.
+                    // pentru concediu adăugăm și o lumină albă suplimentară,
+                    // ca să pară mai “visător”, mai liber, mai fără pontaj
                     if (displayShift == "CO") {
                         drawCircle(
                             brush = Brush.radialGradient(
@@ -1268,7 +1368,11 @@ private fun CalendarDayCell(
                     }
                 }
             }
-            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .border(
+                width = if (isToday) borderWidthAnim.dp else 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(8.dp)
+            )
             .clickable { onClick() }
             .height(54.dp)
             .padding(horizontal = 4.dp, vertical = 6.dp),
@@ -1278,7 +1382,6 @@ private fun CalendarDayCell(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Numărul zilei.
             Text(
                 text = dayNumber.toString(),
                 fontSize = 13.sp,
@@ -1286,11 +1389,12 @@ private fun CalendarDayCell(
                 color = dateColor
             )
 
-            // Afișăm codul turei doar pentru zilele din luna curentă.
             if (!isOtherMonth) {
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
+                    // dacă e concediu, afișăm CO direct;
+                    // altfel arătăm schimbul real
                     text = if (displayShift == "CO") "CO" else realShift,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
@@ -1298,11 +1402,13 @@ private fun CalendarDayCell(
                     textAlign = TextAlign.Center,
                     style = TextStyle(
                         shadow = Shadow(
-                            color = glowColor.copy(alpha = when (displayShift) {
-                                "CO" -> 0.28f
-                                "LIB" -> 0.24f
-                                else -> 0.22f
-                            }),
+                            color = glowColor.copy(
+                                alpha = when (displayShift) {
+                                    "CO" -> 0.28f
+                                    "LIB" -> 0.24f
+                                    else -> 0.22f
+                                }
+                            ),
                             offset = Offset.Zero,
                             blurRadius = when (displayShift) {
                                 "CO" -> 5.5f
@@ -1317,7 +1423,8 @@ private fun CalendarDayCell(
     }
 }
 
-// Returnează multiplicatorul pentru raza glow-ului.
+// puțin ajutor pentru mărimea glow-ului,
+// în funcție de cât de specială e celula
 private fun sizeAwareRadiusMultiplier(isToday: Boolean, isCo: Boolean): Float {
     return when {
         isCo && isToday -> 1.10f
@@ -1327,10 +1434,6 @@ private fun sizeAwareRadiusMultiplier(isToday: Boolean, isCo: Boolean): Float {
     }
 }
 
-// ----------------------------------------------------
-// ELEMENT DIN LEGENDĂ
-// ----------------------------------------------------
-
 @Composable
 private fun LegendItem(
     color: Color,
@@ -1339,6 +1442,7 @@ private fun LegendItem(
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // pătrățelul colorat – mic, dar spune multe
         Box(
             modifier = Modifier
                 .size(12.dp)
