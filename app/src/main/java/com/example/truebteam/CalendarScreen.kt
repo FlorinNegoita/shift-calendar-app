@@ -992,7 +992,7 @@ fun CalendarScreen() {
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("ro"))
-                        val formattedDate = date.format(formatter).replaceFirstChar { it.uppercase() }
+                        val formattedDate = date.format(formatter)
 
                         Text(
                             text = formattedDate,
@@ -1264,7 +1264,7 @@ private fun CalendarDayCell(
     val borderColor = when {
         isToday && startTodayAnimation -> Color(0xFFE53935).copy(alpha = borderAnim)
         isToday -> Color(0xFFE53935).copy(alpha = 0.65f)
-        isOtherMonth -> Color(0xFF0000CC).copy(alpha = 0.95f)
+        isOtherMonth -> Color(0xFF000000).copy(alpha = 0.65f)
         else -> Color.White.copy(alpha = 0.42f)
     }
 
