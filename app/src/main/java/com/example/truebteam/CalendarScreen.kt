@@ -1,5 +1,7 @@
 package com.example.turecalendar.ui
 
+import java.time.format.DateTimeFormatter
+
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.AnimatedContent
@@ -916,6 +918,15 @@ fun CalendarScreen() {
             val realShift = getShiftForDate(date)
             val vacation = isVacation(date)
             val displayShift = if (vacation) "CO" else realShift
+            val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("ro"))
+            val formattedDate = date.format(formatter)
+
+            Text(
+                text = formattedDate,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1F2937)
+            )
 
             AlertDialog(
                 onDismissRequest = { selectedDate = null },
@@ -925,7 +936,7 @@ fun CalendarScreen() {
                 title = {
                     Column {
                         Text(
-                            text = "Zi selectată",
+                            text = "Zi selectata",
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
                             color = popupAccentColor(displayShift)
@@ -980,10 +991,11 @@ fun CalendarScreen() {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
+                        val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("ro"))
+                        val formattedDate = date.format(formatter).replaceFirstChar { it.uppercase() }
+
                         Text(
-                            text = "${date.dayOfMonth} ${
-                                date.month.getDisplayName(JavaTextStyle.FULL, Locale.forLanguageTag("ro"))
-                            } ${date.year}",
+                            text = formattedDate,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = Color(0xFF1F2937)
@@ -1191,7 +1203,7 @@ private fun CalendarDayCell(
             scaleAnim.snapTo(1f)
 
             // mică pauză înainte de “respirația” vizuală
-            delay(900)
+            delay(700)
 
             startTodayAnimation = true
 
@@ -1230,8 +1242,8 @@ private fun CalendarDayCell(
     )
 
     val borderWidthAnim by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.7f,
+        initialValue = 0.4f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
@@ -1252,7 +1264,7 @@ private fun CalendarDayCell(
     val borderColor = when {
         isToday && startTodayAnimation -> Color(0xFFE53935).copy(alpha = borderAnim)
         isToday -> Color(0xFFE53935).copy(alpha = 0.65f)
-        isOtherMonth -> Color(0xFFB8C0CC).copy(alpha = 0.65f)
+        isOtherMonth -> Color(0xFF0000CC).copy(alpha = 0.95f)
         else -> Color.White.copy(alpha = 0.42f)
     }
 
