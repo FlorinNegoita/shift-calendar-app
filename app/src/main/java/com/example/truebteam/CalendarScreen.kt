@@ -217,7 +217,7 @@ private val legalHolidays = setOf(
 // SC3 e roșu, că noaptea nu vine să glumească.
 // ------------------------------------------------------------
 
-private val SurfaceSoft = Color(0xFFECEFF3)
+private val SurfaceSoft = Color(0xFFEEF1F5)
 private val MonthBlue = Color(0xFF3B82F6)
 
 private val Sc1Color = Color(0xFF60A5FA)
@@ -595,8 +595,8 @@ fun CalendarScreen() {
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFFECF0F3),
-                        Color(0xFFEAE3E0),
+                        Color(0xFFEEF1F5),
+                        Color(0xFFEEF1F5),
                         Color(0xFFD7E1F7),
                         Color(0xFFBCCBFF)
                     ),
@@ -609,8 +609,8 @@ fun CalendarScreen() {
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color(0xFFFFF6EF).copy(alpha = 0.95f),
-                            Color(0xFFF8E9DC).copy(alpha = 0.55f),
+                            Color(0xFFEEF1F5).copy(alpha = 0.95f),
+                            Color(0xFFE9EDF2).copy(alpha = 0.95f),
                             Color.Transparent
                         ),
                         center = Offset(size.width * 0.10f, size.height * 0.08f),
