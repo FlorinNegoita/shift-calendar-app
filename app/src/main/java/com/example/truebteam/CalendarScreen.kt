@@ -1,9 +1,5 @@
 package com.example.turecalendar.ui
 
-import java.time.format.DateTimeFormatter
-
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -34,8 +30,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -63,6 +61,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -84,6 +83,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle as JavaTextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
@@ -228,8 +228,8 @@ private val CoColor = Color(0xFFA78BFA)
 
 // verificări simple, dar foarte folositoare;
 // genul de funcții mici care îți salvează nervii mai târziu
-private fun isVacation(date: LocalDate): Boolean = vacationDays.contains(date)
-private fun isLegalHoliday(date: LocalDate): Boolean = legalHolidays.contains(date)
+private fun isVacation(date: LocalDate): Boolean = date in vacationDays
+private fun isLegalHoliday(date: LocalDate): Boolean = date in legalHolidays
 
 // culoarea de accent pentru popup-ul zilei selectate
 // adică să știe și dialogul cu cine ține
@@ -322,7 +322,7 @@ fun getShiftProgress(shift: String, now: LocalTime = LocalTime.now()): String {
 
     // intervalul mort dintre 07:00 și 23:00 pentru SC3
     // adică nu e tura activă, deci putem respira
-    if (shift == "SC3" && toMinutes(now) >= 7 * 60 && toMinutes(now) < 23 * 60) {
+    if (shift == "SC3" && toMinutes(now) in (7 * 60) until (23 * 60)) {
         return messages123.random()
     }
 
@@ -404,7 +404,7 @@ private data class CalendarCell(
 private fun Modifier.neuButtonShadow(
     cornerRadius: Dp,
     pressed: Boolean = false
-): Modifier = this.drawBehind {
+): Modifier = drawBehind {
     val corner = cornerRadius.toPx()
     val darkShadow = Color(0xFF98A0BC)
 
@@ -414,19 +414,19 @@ private fun Modifier.neuButtonShadow(
             color = Color.White.copy(alpha = 0.55f),
             topLeft = Offset((-1).dp.toPx(), (-1).dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
         drawRoundRect(
             color = Color.White.copy(alpha = 0.22f),
             topLeft = Offset((-2).dp.toPx(), (-2).dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
         drawRoundRect(
             color = Color.White.copy(alpha = 0.08f),
             topLeft = Offset((-3).dp.toPx(), (-3).dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
 
         // umbra jos-dreapta, că fără ea totul pare lipit de perete
@@ -434,19 +434,19 @@ private fun Modifier.neuButtonShadow(
             color = darkShadow.copy(alpha = 0.90f),
             topLeft = Offset(2.dp.toPx(), 2.dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
         drawRoundRect(
             color = darkShadow.copy(alpha = 0.60f),
             topLeft = Offset(4.dp.toPx(), 4.dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
         drawRoundRect(
             color = darkShadow.copy(alpha = 0.34f),
             topLeft = Offset(6.dp.toPx(), 6.dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
     } else {
         // la apăsare inversăm subtil senzația,
@@ -455,38 +455,38 @@ private fun Modifier.neuButtonShadow(
             color = darkShadow.copy(alpha = 0.28f),
             topLeft = Offset((-1).dp.toPx(), (-1).dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
         drawRoundRect(
             color = darkShadow.copy(alpha = 0.14f),
             topLeft = Offset((-2).dp.toPx(), (-2).dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
         drawRoundRect(
             color = darkShadow.copy(alpha = 0.06f),
             topLeft = Offset((-3).dp.toPx(), (-3).dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
 
         drawRoundRect(
             color = Color.White.copy(alpha = 0.20f),
             topLeft = Offset(1.dp.toPx(), 1.dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
         drawRoundRect(
             color = Color.White.copy(alpha = 0.10f),
             topLeft = Offset(2.dp.toPx(), 2.dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
         drawRoundRect(
             color = Color.White.copy(alpha = 0.04f),
             topLeft = Offset(3.dp.toPx(), 3.dp.toPx()),
             size = size,
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+            cornerRadius = CornerRadius(corner, corner)
         )
     }
 }
@@ -494,6 +494,7 @@ private fun Modifier.neuButtonShadow(
 @Composable
 fun CalendarScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val roLocale = remember { Locale.forLanguageTag("ro") }
 
     // ticker discret ca să reîmprospătăm mesajul de progres din când în când
     // fără să stea app-ul cu capul în nori
@@ -517,7 +518,11 @@ fun CalendarScreen() {
         currentMonth = newMonth
     }
 
-    val today = remember(tick) { LocalDate.now() }
+    val currentNow = DEBUG_TIME ?: LocalDateTime.now()
+    val today = remember(tick, DEBUG_TIME) { (DEBUG_TIME ?: LocalDateTime.now()).toLocalDate() }
+    val todayShift = remember(tick, DEBUG_TIME) {
+        SIMULATE_SHIFT_TODAY ?: getEffectiveShift(DEBUG_TIME ?: LocalDateTime.now())
+    }
 
     // ------------------------------------------------------------
     // CALCUL ORE NORMĂ
@@ -548,11 +553,6 @@ fun CalendarScreen() {
     }
 
     val overtime = workedHours - normHours
-
-    // timp real sau timp simulat, după chef și nevoie de debug
-    val now = DEBUG_TIME ?: LocalDateTime.now()
-    val todayShift = SIMULATE_SHIFT_TODAY ?: getEffectiveShift(now)
-
     var progressText by remember { mutableStateOf("") }
 
     // actualizăm textul de progres la fiecare tick sau schimbare relevantă
@@ -573,6 +573,7 @@ fun CalendarScreen() {
         }
 
         lifecycleOwner.lifecycle.addObserver(observer)
+
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -582,6 +583,12 @@ fun CalendarScreen() {
         overtime > 0 -> "OVERTIME = $overtime ore"
         overtime < 0 -> "OVERTIME = $overtime ore"
         else -> "Frățioare, luna asta ești pe 0"
+    }
+
+    val overtimeColor = when {
+        overtime > 0 -> Color(0xFF0F8A3B)
+        overtime < 0 -> Color(0xFFD65A5A)
+        else -> Color(0xFF555555)
     }
 
     // ------------------------------------------------------------
@@ -688,11 +695,7 @@ fun CalendarScreen() {
                 text = overtimeText,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = when {
-                    overtime > 0 -> Color(0xFF0F8A3B)
-                    overtime <= 0 -> Color(0xFFD65A5A)
-                    else -> Color(0xFF555555)
-                }
+                color = overtimeColor
             )
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -735,7 +738,7 @@ fun CalendarScreen() {
             SoftPillButton(
                 text = "Azi",
                 onClick = {
-                    changeMonth(YearMonth.now())
+                    changeMonth(YearMonth.from(currentNow))
                     todayAnimationTrigger++
                 }
             )
@@ -782,7 +785,9 @@ fun CalendarScreen() {
                         (
                                 slideInHorizontally(
                                     animationSpec = tween(620, easing = FastOutSlowInEasing),
-                                    initialOffsetX = { fullWidth -> (fullWidth * 0.18f).toInt() * direction }
+                                    initialOffsetX = { fullWidth ->
+                                        (fullWidth * 0.18f).toInt() * direction
+                                    }
                                 ) +
                                         fadeIn(animationSpec = tween(500)) +
                                         scaleIn(
@@ -792,7 +797,9 @@ fun CalendarScreen() {
                                 ) togetherWith (
                                 slideOutHorizontally(
                                     animationSpec = tween(420, easing = FastOutSlowInEasing),
-                                    targetOffsetX = { fullWidth -> -(fullWidth * 0.18f).toInt() * direction }
+                                    targetOffsetX = { fullWidth ->
+                                        -(fullWidth * 0.18f).toInt() * direction
+                                    }
                                 ) +
                                         fadeOut(animationSpec = tween(380)) +
                                         scaleOut(
@@ -881,15 +888,9 @@ fun CalendarScreen() {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = "Azi e ${
-                        today.dayOfWeek.getDisplayName(
-                            JavaTextStyle.FULL,
-                            Locale.forLanguageTag("ro")
-                        )
+                        today.dayOfWeek.getDisplayName(JavaTextStyle.FULL, roLocale)
                     }, ${today.dayOfMonth} ${
-                        today.month.getDisplayName(
-                            JavaTextStyle.FULL,
-                            Locale.forLanguageTag("ro")
-                        )
+                        today.month.getDisplayName(JavaTextStyle.FULL, roLocale)
                     }",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
@@ -913,30 +914,18 @@ fun CalendarScreen() {
         // apeși pe o zi și primești verdictul:
         // ce ai fost, ce ești sau ce urmează să fii.
         // ------------------------------------------------------------
-        if (selectedDate != null) {
-            val date = selectedDate!!
+        selectedDate?.let { date ->
             val realShift = getShiftForDate(date)
             val vacation = isVacation(date)
             val displayShift = if (vacation) "CO" else realShift
-            val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("ro"))
-            val formattedDate = date.format(formatter)
-
-            Text(
-                text = formattedDate,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF1F2937)
-            )
 
             AlertDialog(
                 onDismissRequest = { selectedDate = null },
-                icon = {
-
-                },
+                icon = {},
                 title = {
                     Column {
                         Text(
-                            text = "Zi selectata",
+                            text = "Zi selectată",
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
                             color = popupAccentColor(displayShift)
@@ -991,8 +980,9 @@ fun CalendarScreen() {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale("ro"))
+                        val formatter = DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", roLocale)
                         val formattedDate = date.format(formatter)
+                            .replaceFirstChar { it.uppercase(roLocale) }
 
                         Text(
                             text = formattedDate,
@@ -1305,19 +1295,19 @@ private fun CalendarDayCell(
                     color = Color.White.copy(alpha = 0.95f),
                     topLeft = Offset((-2).dp.toPx(), (-2).dp.toPx()),
                     size = size,
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                    cornerRadius = CornerRadius(corner, corner)
                 )
                 drawRoundRect(
                     color = Color.White.copy(alpha = 0.45f),
                     topLeft = Offset((-4).dp.toPx(), (-4).dp.toPx()),
                     size = size,
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                    cornerRadius = CornerRadius(corner, corner)
                 )
                 drawRoundRect(
                     color = Color.White.copy(alpha = 0.18f),
                     topLeft = Offset((-7).dp.toPx(), (-7).dp.toPx()),
                     size = size,
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                    cornerRadius = CornerRadius(corner, corner)
                 )
 
                 // umbra inferioară – partea care dă volum și “carne” celulei
@@ -1325,19 +1315,19 @@ private fun CalendarDayCell(
                     color = neoShadow.copy(alpha = 0.90f),
                     topLeft = Offset(3.dp.toPx(), 3.dp.toPx()),
                     size = size,
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                    cornerRadius = CornerRadius(corner, corner)
                 )
                 drawRoundRect(
                     color = neoShadow.copy(alpha = 0.60f),
                     topLeft = Offset(6.dp.toPx(), 6.dp.toPx()),
                     size = size,
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                    cornerRadius = CornerRadius(corner, corner)
                 )
                 drawRoundRect(
                     color = neoShadow.copy(alpha = if (isToday) 0.36f else 0.34f),
                     topLeft = Offset(9.dp.toPx(), 9.dp.toPx()),
                     size = size,
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(corner, corner)
+                    cornerRadius = CornerRadius(corner, corner)
                 )
             }
             .clip(RoundedCornerShape(8.dp))
@@ -1385,7 +1375,7 @@ private fun CalendarDayCell(
                 color = borderColor,
                 shape = RoundedCornerShape(8.dp)
             )
-            .clickable { onClick() }
+            .clickable(onClick = onClick)
             .height(54.dp)
             .padding(horizontal = 4.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
