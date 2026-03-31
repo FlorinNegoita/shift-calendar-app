@@ -667,7 +667,7 @@ fun CalendarScreen() {
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .padding(horizontal = 14.dp)
-                .padding(bottom = 80.dp),
+                .padding(bottom = 140.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(8.dp))
@@ -777,7 +777,7 @@ fun CalendarScreen() {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp, bottom = 14.dp)
+                    .padding(top = 10.dp, bottom = 24.dp)
             ) {
                 AnimatedContent(
                     targetState = currentMonth,
@@ -821,7 +821,7 @@ fun CalendarScreen() {
                             start = 0.dp,
                             end = 0.dp,
                             top = 10.dp,
-                            bottom = 8.dp
+                            bottom = 28.dp
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1281,150 +1281,155 @@ private fun CalendarDayCell(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .alpha(baseAlpha)
-            .zIndex(if (isToday) 10f else 0f)
-            .graphicsLayer {
-                scaleX = scaleAnim.value
-                scaleY = scaleAnim.value
-            }
-            .drawBehind {
-                val corner = 8.dp.toPx()
+            .padding(bottom = if (isToday) 12.dp else 0.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .alpha(baseAlpha)
+                .zIndex(if (isToday) 10f else 0f)
+                .graphicsLayer {
+                    scaleX = scaleAnim.value
+                    scaleY = scaleAnim.value
+                }
+                .drawBehind {
+                    val corner = 8.dp.toPx()
 
-                // highlight-ul alb de sus-stânga
-                drawRoundRect(
-                    color = Color.White.copy(alpha = 0.95f),
-                    topLeft = Offset((-2).dp.toPx(), (-2).dp.toPx()),
-                    size = size,
-                    cornerRadius = CornerRadius(corner, corner)
-                )
-                drawRoundRect(
-                    color = Color.White.copy(alpha = 0.45f),
-                    topLeft = Offset((-4).dp.toPx(), (-4).dp.toPx()),
-                    size = size,
-                    cornerRadius = CornerRadius(corner, corner)
-                )
-                drawRoundRect(
-                    color = Color.White.copy(alpha = 0.18f),
-                    topLeft = Offset((-7).dp.toPx(), (-7).dp.toPx()),
-                    size = size,
-                    cornerRadius = CornerRadius(corner, corner)
-                )
-
-                // umbra inferioară – partea care dă volum și “carne” celulei
-                drawRoundRect(
-                    color = neoShadow.copy(alpha = 0.90f),
-                    topLeft = Offset(3.dp.toPx(), 3.dp.toPx()),
-                    size = size,
-                    cornerRadius = CornerRadius(corner, corner)
-                )
-                drawRoundRect(
-                    color = neoShadow.copy(alpha = 0.60f),
-                    topLeft = Offset(6.dp.toPx(), 6.dp.toPx()),
-                    size = size,
-                    cornerRadius = CornerRadius(corner, corner)
-                )
-                drawRoundRect(
-                    color = neoShadow.copy(alpha = if (isToday) 0.36f else 0.34f),
-                    topLeft = Offset(9.dp.toPx(), 9.dp.toPx()),
-                    size = size,
-                    cornerRadius = CornerRadius(corner, corner)
-                )
-            }
-            .clip(RoundedCornerShape(8.dp))
-            .background(SurfaceSoft)
-            .drawWithContent {
-                drawContent()
-
-                if (!isOtherMonth) {
-                    // glow-ul de schimb – subtil, colorat, viu
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                glowColor.copy(alpha = glowPrimaryAlpha),
-                                glowColor.copy(alpha = glowSecondaryAlpha),
-                                Color.Transparent
-                            ),
-                            center = center,
-                            radius = size.minDimension * glowRadius
-                        ),
-                        radius = size.minDimension * glowRadius,
-                        center = center
+                    // highlight-ul alb de sus-stânga
+                    drawRoundRect(
+                        color = Color.White.copy(alpha = 0.95f),
+                        topLeft = Offset((-2).dp.toPx(), (-2).dp.toPx()),
+                        size = size,
+                        cornerRadius = CornerRadius(corner, corner)
+                    )
+                    drawRoundRect(
+                        color = Color.White.copy(alpha = 0.45f),
+                        topLeft = Offset((-4).dp.toPx(), (-4).dp.toPx()),
+                        size = size,
+                        cornerRadius = CornerRadius(corner, corner)
+                    )
+                    drawRoundRect(
+                        color = Color.White.copy(alpha = 0.18f),
+                        topLeft = Offset((-7).dp.toPx(), (-7).dp.toPx()),
+                        size = size,
+                        cornerRadius = CornerRadius(corner, corner)
                     )
 
-                    // pentru concediu adăugăm și o lumină albă suplimentară,
-                    // ca să pară mai “visător”, mai liber, mai fără pontaj
-                    if (displayShift == "CO") {
+                    // umbra inferioară – partea care dă volum și “carne” celulei
+                    drawRoundRect(
+                        color = neoShadow.copy(alpha = 0.90f),
+                        topLeft = Offset(3.dp.toPx(), 3.dp.toPx()),
+                        size = size,
+                        cornerRadius = CornerRadius(corner, corner)
+                    )
+                    drawRoundRect(
+                        color = neoShadow.copy(alpha = 0.60f),
+                        topLeft = Offset(6.dp.toPx(), 6.dp.toPx()),
+                        size = size,
+                        cornerRadius = CornerRadius(corner, corner)
+                    )
+                    drawRoundRect(
+                        color = neoShadow.copy(alpha = if (isToday) 0.36f else 0.34f),
+                        topLeft = Offset(9.dp.toPx(), 9.dp.toPx()),
+                        size = size,
+                        cornerRadius = CornerRadius(corner, corner)
+                    )
+                }
+                .clip(RoundedCornerShape(8.dp))
+                .background(SurfaceSoft)
+                .drawWithContent {
+                    drawContent()
+
+                    if (!isOtherMonth) {
+                        // glow-ul de schimb – subtil, colorat, viu
                         drawCircle(
                             brush = Brush.radialGradient(
                                 colors = listOf(
-                                    Color.White.copy(alpha = if (isToday) 0.26f else 0.18f),
-                                    Color.White.copy(alpha = if (isToday) 0.10f else 0.07f),
+                                    glowColor.copy(alpha = glowPrimaryAlpha),
+                                    glowColor.copy(alpha = glowSecondaryAlpha),
                                     Color.Transparent
                                 ),
-                                center = Offset(size.width * 0.34f, size.height * 0.30f),
-                                radius = size.minDimension * 0.62f
+                                center = center,
+                                radius = size.minDimension * glowRadius
                             ),
-                            radius = size.minDimension * 0.62f,
-                            center = Offset(size.width * 0.34f, size.height * 0.30f)
+                            radius = size.minDimension * glowRadius,
+                            center = center
                         )
+
+                        // pentru concediu adăugăm și o lumină albă suplimentară,
+                        // ca să pară mai “visător”, mai liber, mai fără pontaj
+                        if (displayShift == "CO") {
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = if (isToday) 0.26f else 0.18f),
+                                        Color.White.copy(alpha = if (isToday) 0.10f else 0.07f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(size.width * 0.34f, size.height * 0.30f),
+                                    radius = size.minDimension * 0.62f
+                                ),
+                                radius = size.minDimension * 0.62f,
+                                center = Offset(size.width * 0.34f, size.height * 0.30f)
+                            )
+                        }
                     }
                 }
-            }
-            .border(
-                width = if (isToday) borderWidthAnim.dp else 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(8.dp)
-            )
-            .clickable(onClick = onClick)
-            .height(54.dp)
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .border(
+                    width = if (isToday) borderWidthAnim.dp else 1.dp,
+                    color = borderColor,
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .clickable(onClick = onClick)
+                .height(54.dp)
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = dayNumber.toString(),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Normal,
-                color = dateColor
-            )
-
-            if (!isOtherMonth) {
-                Spacer(modifier = Modifier.height(4.dp))
-
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
-                    // dacă e concediu, afișăm CO direct;
-                    // altfel arătăm schimbul real
-                    text = if (displayShift == "CO") "CO" else realShift,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = shiftColor,
-                    textAlign = TextAlign.Center,
-                    style = TextStyle(
-                        shadow = Shadow(
-                            color = glowColor.copy(
-                                alpha = when (displayShift) {
-                                    "CO" -> 0.28f
-                                    "LIB" -> 0.24f
-                                    else -> 0.22f
+                    text = dayNumber.toString(),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = dateColor
+                )
+
+                if (!isOtherMonth) {
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        // dacă e concediu, afișăm CO direct;
+                        // altfel arătăm schimbul real
+                        text = if (displayShift == "CO") "CO" else realShift,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = shiftColor,
+                        textAlign = TextAlign.Center,
+                        style = TextStyle(
+                            shadow = Shadow(
+                                color = glowColor.copy(
+                                    alpha = when (displayShift) {
+                                        "CO" -> 0.28f
+                                        "LIB" -> 0.24f
+                                        else -> 0.22f
+                                    }
+                                ),
+                                offset = Offset.Zero,
+                                blurRadius = when (displayShift) {
+                                    "CO" -> 5.5f
+                                    "LIB" -> 4.8f
+                                    else -> 4.2f
                                 }
-                            ),
-                            offset = Offset.Zero,
-                            blurRadius = when (displayShift) {
-                                "CO" -> 5.5f
-                                "LIB" -> 4.8f
-                                else -> 4.2f
-                            }
+                            )
                         )
                     )
-                )
+                }
             }
         }
     }
 }
-
 // puțin ajutor pentru mărimea glow-ului,
 // în funcție de cât de specială e celula
 private fun sizeAwareRadiusMultiplier(isToday: Boolean, isCo: Boolean): Float {
