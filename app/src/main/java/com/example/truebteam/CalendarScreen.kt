@@ -438,13 +438,13 @@ private fun Modifier.neuButtonShadow(
         )
         drawRoundRect(
             color = darkShadow.copy(alpha = 0.60f),
-            topLeft = Offset(4.dp.toPx(), 4.dp.toPx()),
+            topLeft = Offset(3.dp.toPx(), 3.dp.toPx()),
             size = size,
             cornerRadius = CornerRadius(corner, corner)
         )
         drawRoundRect(
             color = darkShadow.copy(alpha = 0.34f),
-            topLeft = Offset(6.dp.toPx(), 6.dp.toPx()),
+            topLeft = Offset(4.dp.toPx(), 4.dp.toPx()),
             size = size,
             cornerRadius = CornerRadius(corner, corner)
         )
@@ -749,7 +749,8 @@ fun CalendarScreen() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
+                    .padding(horizontal = 4.dp)
+                    .zIndex(0f),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 listOf("LU", "MA", "MI", "JO", "VI", "SA", "DU").forEach { day ->
@@ -778,6 +779,7 @@ fun CalendarScreen() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 10.dp, bottom = 24.dp)
+                    .zIndex(20f)
             ) {
                 AnimatedContent(
                     targetState = currentMonth,
@@ -808,7 +810,8 @@ fun CalendarScreen() {
                                         )
                                 )
                     },
-                    label = "monthSlide"
+                    label = "monthSlide",
+                    modifier = Modifier.zIndex(20f)
                 ) { month ->
                     val monthCells = remember(month) { buildCalendarCells(month) }
 
@@ -826,6 +829,7 @@ fun CalendarScreen() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 4.dp, bottom = 6.dp)
+                            .zIndex(20f)
                     ) {
                         items(monthCells) { cell ->
                             val realShift = getShiftForDate(cell.date)
@@ -862,7 +866,8 @@ fun CalendarScreen() {
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(bottom = 50.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 18.dp),
+                .padding(horizontal = 18.dp)
+                .zIndex(0f),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             LegendItem(Sc1Color, "SC1")
@@ -882,7 +887,8 @@ fun CalendarScreen() {
                 .fillMaxWidth()
                 .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(bottom = 6.dp)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .zIndex(0f),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -1282,15 +1288,17 @@ private fun CalendarDayCell(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = if (isToday) 12.dp else 0.dp)
+            .zIndex(if (isToday) 100f else 0f)
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .alpha(baseAlpha)
-                .zIndex(if (isToday) 10f else 0f)
+                .zIndex(if (isToday) 100f else 0f)
                 .graphicsLayer {
                     scaleX = scaleAnim.value
                     scaleY = scaleAnim.value
+                    clip = false
                 }
                 .drawBehind {
                     val corner = 8.dp.toPx()
@@ -1430,6 +1438,7 @@ private fun CalendarDayCell(
         }
     }
 }
+
 // puțin ajutor pentru mărimea glow-ului,
 // în funcție de cât de specială e celula
 private fun sizeAwareRadiusMultiplier(isToday: Boolean, isCo: Boolean): Float {
