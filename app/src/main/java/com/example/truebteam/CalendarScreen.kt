@@ -555,7 +555,7 @@ fun CalendarScreen() {
 
     val overtimeText = when {
         overtime > 0 -> "OVERTIME = $overtime ore"
-        overtime <= 0 -> "OVERTIME = $overtime ore"
+        overtime <= 0 -> "Frățioare, luna asta ești pe 0"
         else -> "Frățioare, luna asta ești pe 0"
     }
 
