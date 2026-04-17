@@ -1,5 +1,6 @@
 package com.example.turecalendar.ui
 
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -86,11 +87,31 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.Month
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle as JavaTextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+
+data class TeamConfig(
+    val title: String,
+    val displayName: String,
+    val offset: Int
+)
+
+private val teams = listOf(
+    TeamConfig("TEAM A", "TEAM A - aLu'Cristi", -2),
+    TeamConfig("TEAM B", "TEAM B - aLu'Primaru' 😏", 0),
+    TeamConfig("TEAM C", "TEAM C - aLu'Catuta", 2),
+    TeamConfig("TEAM D", "TEAM D - aLu'Ion", 4)
+)
+//............................................................
+//
+//
+//.............................................................
+
+
 
 // ------------------------------------------------------------
 // MESAJELE MOTIVAȚIONALE
@@ -151,6 +172,7 @@ private val cycleStartDate = LocalDate.of(2025, 11, 3)
 // pentru teste rapide; când e null, aplicația merge pe viața reală
 private val SIMULATE_SHIFT_TODAY: String? = null
 private val DEBUG_TIME: LocalDateTime? = null  //LocalDateTime.of(2026, 8, 31, 22, 30)
+
 
 // ------------------------------------------------------------
 // CONCEDII
@@ -255,11 +277,13 @@ private fun popupAccentColor(displayShift: String): Color {
 // simplu, elegant, fără telenovelă.
 // ------------------------------------------------------------
 
-fun getShiftForDate(date: LocalDate): String {
+fun getShiftForDate(date: LocalDate, offset: Int): String {
     val d = ChronoUnit.DAYS.between(cycleStartDate, date)
     if (d < 0) return "LIB"
 
-    return when ((d % 8).toInt()) {
+    val adjusted = ((d + offset) % 8 + 8) % 8
+
+    return when (adjusted.toInt()) {
         0, 1 -> "SC1"
         2, 3 -> "SC2"
         4, 5 -> "SC3"
@@ -267,23 +291,27 @@ fun getShiftForDate(date: LocalDate): String {
     }
 }
 
+fun getShiftForDate(date: LocalDate): String {
+    return getShiftForDate(date, 0)
+}
+
 // aici nu ne uităm doar la zi, ci și la oră,
 // pentru că SC3 e o fiară specială: începe într-o zi și se termină în alta
-fun getEffectiveShift(now: LocalDateTime = LocalDateTime.now()): String {
+fun getEffectiveShift(now: LocalDateTime = LocalDateTime.now(), offset: Int = 0): String {
     val today = now.toLocalDate()
     val time = now.toLocalTime()
 
     if (time < LocalTime.of(7, 0)) {
-        val yesterdayShift = getShiftForDate(today.minusDays(1))
+        val yesterdayShift = getShiftForDate(today.minusDays(1), offset)
         if (yesterdayShift == "SC3") return "SC3"
     }
 
     if (time >= LocalTime.of(23, 0)) {
-        val tomorrowShift = getShiftForDate(today.plusDays(1))
+        val tomorrowShift = getShiftForDate(today.plusDays(1), offset)
         if (tomorrowShift == "SC3") return "SC3"
     }
 
-    return getShiftForDate(today)
+    return getShiftForDate(today, offset)
 }
 
 // ------------------------------------------------------------
@@ -466,8 +494,17 @@ private fun Modifier.neuButtonShadow(
 @Composable
 fun CalendarScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val tapCountRef = remember { mutableStateOf(0) }
+    val lastTapTimeRef = remember { mutableStateOf(0L) }
+
     val roLocale = remember { Locale.forLanguageTag("ro") }
     val density = LocalDensity.current
+
+    var selectedTeamIndex by remember { mutableStateOf(1) }
+    val currentTeam = teams[selectedTeamIndex]
+
+
+    var showTeamDialog by remember { mutableStateOf(false) }
 
     var tick by remember { mutableLongStateOf(0L) }
     LaunchedEffect(Unit) {
@@ -490,12 +527,13 @@ fun CalendarScreen() {
     fun changeMonth(newMonth: YearMonth) {
         direction = if (newMonth > currentMonth) 1 else -1
         currentMonth = newMonth
+        tapCountRef.value = 0
     }
 
     val currentNow = DEBUG_TIME ?: LocalDateTime.now()
     val today = remember(tick, DEBUG_TIME) { (DEBUG_TIME ?: LocalDateTime.now()).toLocalDate() }
-    val todayShift = remember(tick, DEBUG_TIME) {
-        SIMULATE_SHIFT_TODAY ?: getEffectiveShift(DEBUG_TIME ?: LocalDateTime.now())
+    val todayShift = remember(tick, DEBUG_TIME, selectedTeamIndex) {
+        SIMULATE_SHIFT_TODAY ?: getEffectiveShift(DEBUG_TIME ?: LocalDateTime.now(), currentTeam.offset)
     }
 
     // când nu suntem în luna curentă reală, ștergem overlay-ul,
@@ -521,10 +559,10 @@ fun CalendarScreen() {
         } * 8
     }
 
-    val workedHours = remember(currentMonth) {
+    val workedHours = remember(currentMonth, selectedTeamIndex) {
         (1..currentMonth.lengthOfMonth()).count { day ->
             val date = currentMonth.atDay(day)
-            val isWorkedShift = getShiftForDate(date) in listOf("SC1", "SC2", "SC3")
+            val isWorkedShift = getShiftForDate(date, currentTeam.offset) in listOf("SC1", "SC2", "SC3")
             isWorkedShift && !isVacation(date)
         } * 8
     }
@@ -532,16 +570,16 @@ fun CalendarScreen() {
     val overtime = workedHours - normHours
     var progressText by remember { mutableStateOf("") }
 
-    LaunchedEffect(todayShift, tick) {
+    LaunchedEffect(todayShift, tick, selectedTeamIndex) {
         val refreshedNow = DEBUG_TIME ?: LocalDateTime.now()
         progressText = getShiftProgress(todayShift, refreshedNow.toLocalTime())
     }
 
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner, selectedTeamIndex) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val refreshedNow = DEBUG_TIME ?: LocalDateTime.now()
-                val effectiveShift = SIMULATE_SHIFT_TODAY ?: getEffectiveShift(refreshedNow)
+                val effectiveShift = SIMULATE_SHIFT_TODAY ?: getEffectiveShift(refreshedNow, currentTeam.offset)
                 progressText = getShiftProgress(effectiveShift, refreshedNow.toLocalTime())
             }
         }
@@ -635,7 +673,7 @@ fun CalendarScreen() {
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "TEAM B",
+                text = currentTeam.title,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Normal,
                 letterSpacing = 3.sp,
@@ -674,7 +712,35 @@ fun CalendarScreen() {
 
                 Text(
                     text = monthTitle(currentMonth),
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            if (currentMonth.month == Month.JULY) {
+
+                                val now = System.currentTimeMillis()
+
+                                val last = lastTapTimeRef.value
+                                val newCount = if (now - last <= 1000) {
+                                    tapCountRef.value + 1
+                                } else {
+                                    1
+                                }
+
+                                tapCountRef.value = newCount
+                                lastTapTimeRef.value = now
+
+                                if (newCount >= 5) {
+                                    showTeamDialog = true
+                                    tapCountRef.value = 0
+                                }
+
+                            } else {
+                                tapCountRef.value = 0
+                            }
+                        },
                     textAlign = TextAlign.Center,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
@@ -783,7 +849,7 @@ fun CalendarScreen() {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         items(monthCells) { cell ->
-                            val realShift = getShiftForDate(cell.date)
+                            val realShift = getShiftForDate(cell.date, currentTeam.offset)
                             val vacation = isVacation(cell.date)
                             val displayShift = if (vacation) "CO" else realShift
                             val isToday = cell.date == today
@@ -863,8 +929,8 @@ fun CalendarScreen() {
             val overlaySize = todayCellSize
 
             if (overlayOffset != null && overlaySize != null) {
-                val overlayDisplayShift = if (isVacation(today)) "CO" else getShiftForDate(today)
-                val overlayRealShift = getShiftForDate(today)
+                val overlayDisplayShift = if (isVacation(today)) "CO" else getShiftForDate(today, currentTeam.offset)
+                val overlayRealShift = getShiftForDate(today, currentTeam.offset)
 
                 Box(
                     modifier = Modifier
@@ -898,7 +964,7 @@ fun CalendarScreen() {
         }
 
         selectedDate?.let { date ->
-            val realShift = getShiftForDate(date)
+            val realShift = getShiftForDate(date, currentTeam.offset)
             val vacation = isVacation(date)
             val displayShift = if (vacation) "CO" else realShift
 
@@ -907,6 +973,9 @@ fun CalendarScreen() {
                 icon = {},
                 title = {
                     Column {
+                        Spacer(modifier = Modifier.height(6.dp))
+
+
                         Text(
                             text = "Zi selectată",
                             fontWeight = FontWeight.Bold,
@@ -923,6 +992,7 @@ fun CalendarScreen() {
                                 .clip(RoundedCornerShape(99.dp))
                                 .background(popupAccentColor(displayShift).copy(alpha = 0.75f))
                         )
+
                     }
                 },
                 text = {
@@ -958,6 +1028,9 @@ fun CalendarScreen() {
                         else -> ""
                     }
 
+
+
+
                     Column(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
@@ -987,6 +1060,14 @@ fun CalendarScreen() {
                                 color = Color(0xFF4B5563)
                             )
                         }
+                        Text(
+                            text = "Alege tura ta cu 5 click-uri pe luna IULIE",
+                            fontSize = 12.sp,
+                            color = Color(0xFF7C8799),
+                            lineHeight = 16.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.alpha(0.85f)
+                        )
                     }
                 },
                 confirmButton = {
@@ -1001,13 +1082,126 @@ fun CalendarScreen() {
                             defaultElevation = 0.dp,
                             pressedElevation = 0.dp
                         )
-                    ) {
+                    )
+
+
+                    {
                         Text(
                             text = "OK",
                             fontWeight = FontWeight.SemiBold
                         )
+
+
+
+
                     }
                 },
+                shape = RoundedCornerShape(28.dp),
+                containerColor = Color(0xFFF7F9FC),
+                tonalElevation = 0.dp
+            )
+        }
+
+        if (showTeamDialog) {
+            AlertDialog(
+                onDismissRequest = { /* nu închidem pe tap exterior */ },
+                title = {
+                    Text(
+                        text = "Selectează echipa",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = MonthBlue
+                    )
+                },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        teams.forEachIndexed { index, team ->
+
+                            val isSelected = index == selectedTeamIndex
+
+                            val interactionSource = remember { MutableInteractionSource() }
+                            val isPressed by interactionSource.collectIsPressedAsState()
+
+                            val scale by animateFloatAsState(
+                                targetValue = if (isPressed) 0.97f else 1f,
+                                animationSpec = spring(dampingRatio = 0.6f, stiffness = 700f),
+                                label = "teamScale"
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .graphicsLayer {
+                                        scaleX = scale
+                                        scaleY = scale
+                                    }
+                                    .neuButtonShadow(
+                                        cornerRadius = 16.dp,
+                                        pressed = isPressed
+                                    )
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(SurfaceSoft)
+                                    .clickable {
+                                        selectedTeamIndex = index
+                                        showTeamDialog = false
+
+                                        // 🔥 sari pe luna curentă
+                                        changeMonth(YearMonth.from(LocalDate.now()))
+
+                                        // 🔥 pornește animația "Azi"
+                                        todayAnimationTrigger++
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                            ) {
+
+                                Column {
+
+                                    Text(
+                                        text = team.title,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) MonthBlue else Color(0xFF1F2937)
+                                    )
+
+                                    if (team.displayName != team.title) {
+                                        Spacer(modifier = Modifier.height(2.dp))
+
+                                        Text(
+                                            text = team.displayName,
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF6B7280)
+                                        )
+                                    }
+                                }
+
+                                // 🔥 GLOW SELECTED
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .drawBehind {
+                                                drawCircle(
+                                                    brush = Brush.radialGradient(
+                                                        colors = listOf(
+                                                            MonthBlue.copy(alpha = 0.25f),
+                                                            MonthBlue.copy(alpha = 0.08f),
+                                                            Color.Transparent
+                                                        ),
+                                                        radius = size.minDimension * 0.9f
+                                                    ),
+                                                    radius = size.minDimension * 0.9f
+                                                )
+                                            }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                },
+                confirmButton = {},
                 shape = RoundedCornerShape(28.dp),
                 containerColor = Color(0xFFF7F9FC),
                 tonalElevation = 0.dp

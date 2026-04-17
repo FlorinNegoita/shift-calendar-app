@@ -7,11 +7,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.GlanceTheme
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
-import androidx.glance.layout.*
+import androidx.glance.layout.Alignment
+import androidx.glance.layout.Column
+import androidx.glance.layout.Spacer
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.height
+import androidx.glance.layout.padding
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
@@ -29,92 +33,71 @@ class ShiftWidget : GlanceAppWidget() {
 
     @Composable
     private fun Content() {
-
         val now = LocalDateTime.now()
-        val shift = getEffectiveShift(now)
 
-        val shiftColor = when (shift) {
-            "SC1" -> Color(0xFF60A5FA)
-            "SC2" -> Color(0xFFF59E0B)
-            "SC3" -> Color(0xFFEF4444)
-            "LIB" -> Color(0xFF22C55E)
-            "CO"  -> Color(0xFFA78BFA)
-            else  -> Color(0xFF9CA3AF)
-        }
+        val shiftToday = getEffectiveShift(now)
+        val shiftTomorrow = getShiftForDate(now.toLocalDate().plusDays(1))
 
-        GlanceTheme {
-            // 🔥 BOX MIC — NU mai fillMaxSize
-            Box(
-                modifier = GlanceModifier
-                    .wrapContentSize()
-                    .padding(4.dp)
-            ) {
-                Column(
-                    modifier = GlanceModifier
-                        // 🔥 cât textul, nu full
-                        .wrapContentSize()
-                        // 🔥 fundal mic + transparent
-                        .background(ColorProvider(Color(0x33FFFFFF)))
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+        Column(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .background(ColorProvider(Color(0x00FFFFFF))),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "TEAM B",
+                style = TextStyle(
+                    color = ColorProvider(Color.White),
+                    fontSize = 9.sp
+                )
+            )
 
-                    Text(
-                        text = "TEAM B",
-                        style = TextStyle(
-                            color = ColorProvider(Color(0xFF374151)),
-                            fontSize = 10.sp
-                        )
-                    )
+            Spacer(modifier = GlanceModifier.height(1.dp))
 
-                    Spacer(modifier = GlanceModifier.height(2.dp))
+            Text(
+                text = shiftToday,
+                style = TextStyle(
+                    color = ColorProvider(Color.White),
+                    fontSize = 15.sp
+                )
+            )
 
-                    Text(
-                        text = shift,
-                        style = TextStyle(
-                            color = ColorProvider(shiftColor),
-                            fontSize = 16.sp
-                        )
-                    )
+            Spacer(modifier = GlanceModifier.height(1.dp))
 
-                    Spacer(modifier = GlanceModifier.height(2.dp))
-
-                    Text(
-                        text = getShiftInterval(shift),
-                        style = TextStyle(
-                            color = ColorProvider(Color(0xFF6B7280)),
-                            fontSize = 9.sp
-                        )
-                    )
-                }
-            }
+            Text(
+                text = "Mâine: $shiftTomorrow",
+                style = TextStyle(
+                    color = ColorProvider(Color.White),
+                    fontSize = 14.sp
+                )
+            )
         }
     }
 }
 
-/**
- * Rotație: SC1 → SC2 → SC3 → LIB → LIB → (repeat)
- * TODO: Ajustează CYCLE_START_DATE la data reală de referință pentru Team B
- *       și CYCLE_START_SHIFT la schimbul corespunzător acelei date.
- */
-fun getEffectiveShift(now: LocalDateTime): String {
-    val CYCLE_START_DATE = LocalDate.of(2024, 1, 1) // <-- modifică data de referință
-    val cycle = listOf("SC1", "SC1", "SC2", "SC2", "SC3", "SC3", "LIB", "LIB")
+private val cycleStartDate: LocalDate = LocalDate.of(2025, 11, 3)
 
-    val today = now.toLocalDate()
-    val daysSinceStart = ChronoUnit.DAYS.between(CYCLE_START_DATE, today).toInt()
-    val index = ((daysSinceStart % cycle.size) + cycle.size) % cycle.size
-    return cycle[index]
+private fun getShiftForDate(date: LocalDate): String {
+    val days = ChronoUnit.DAYS.between(cycleStartDate, date).toInt()
+    val index = ((days % 8) + 8) % 8
+
+    return when (index) {
+        0, 1 -> "SC1"
+        2, 3 -> "SC2"
+        4, 5 -> "SC3"
+        else -> "LIB"
+    }
 }
 
-fun getShiftInterval(shift: String): String {
-    return when (shift) {
-        "SC1" -> "07:00 - 15:00"
-        "SC2" -> "15:00 - 23:00"
-        "SC3" -> "23:00 - 07:00"
-        "LIB" -> "Liber"
-        "CO"  -> "Concediu"
-        else  -> "-"
+private fun getEffectiveShift(now: LocalDateTime): String {
+    val today = now.toLocalDate()
+    val yesterday = today.minusDays(1)
+    val hour = now.hour
+
+    return when {
+        hour < 7 && getShiftForDate(yesterday) == "SC3" -> "SC3"
+        hour >= 23 && getShiftForDate(today) == "SC3" -> "SC3"
+        else -> getShiftForDate(today)
     }
 }
