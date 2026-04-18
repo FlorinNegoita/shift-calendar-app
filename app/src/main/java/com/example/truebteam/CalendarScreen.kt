@@ -1063,10 +1063,10 @@ fun CalendarScreen() {
                         Text(
                             text = "Alege tura ta cu 5 click-uri pe luna IULIE",
                             fontSize = 12.sp,
-                            color = Color(0xFF7C8799),
-                            lineHeight = 16.sp,
+                            color = Color(0xFFD65A5A),
+                            lineHeight = 18.sp,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.alpha(0.85f)
+                            modifier = Modifier.alpha(0.95f)
                         )
                     }
                 },
