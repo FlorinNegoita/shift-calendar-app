@@ -29,9 +29,9 @@ Totul este calculat automat în funcție de o dată de start.
 
 ## 📸 Screenshots
 <p align="center">
-<img width="125" height="250" alt="Screenshot_20260420_204759" src="https://github.com/user-attachments/assets/4305c7b2-17de-431e-94a9-0e45a8ca8181" />
-<img width="125" height="250" alt="Screenshot_20260420_204839" src="https://github.com/user-attachments/assets/39a8c938-58b3-4c8c-8ac1-d63b78920590" />
-<img width="125" height="259" alt="Screenshot_20260420_204819" src="https://github.com/user-attachments/assets/c1c98ea4-1eba-4512-a917-acddc083da24" />
+  <img src="https://github.com/user-attachments/assets/4305c7b2-17de-431e-94a9-0e45a8ca8181" width="200"/>
+  <img src="https://github.com/user-attachments/assets/39a8c938-58b3-4c8c-8ac1-d63b78920590" width="200"/>
+  <img src="https://github.com/user-attachments/assets/c1c98ea4-1eba-4512-a917-acddc083da24" width="200"/>
 </p>
 ## 🚀 Status
 
