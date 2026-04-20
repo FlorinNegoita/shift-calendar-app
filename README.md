@@ -41,4 +41,37 @@ Proiect activ – în dezvoltare continuă
 
 Aplicația a fost creată pentru a simplifica urmărirea turelor de lucru fără introducere manuală zilnică.
 
+# Shift Calendar App 📅
+
+> Simple and automatic shift tracking app built with Jetpack Compose.
+> Aplicație simplă și automată pentru gestionarea turelor de lucru.
+
+---
+
+## 🇬🇧 English
+
+Android app designed to simplify work shift tracking using an automatic 8-day rotation system.
+
+Built with Jetpack Compose, the app provides a clean and modern interface, eliminating the need for manual scheduling.
+
+### 🔥 Features
+
+* Automatic shift rotation (SC1 → SC2 → SC3 → LIB)
+* Real-time current shift detection (including night shifts)
+* Interactive monthly calendar
+* Modern UI (neumorphism style)
+* Home screen widget for quick access
+
+### 🧠 How it works
+
+The app uses a repeating 8-day cycle:
+
+* 2 days SC1
+* 2 days SC2
+* 2 days SC3
+* 2 days LIB
+
+Everything is calculated automatically based on a selected start date.
+
+---
 
