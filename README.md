@@ -38,5 +38,5 @@ Proiect activ – în dezvoltare continuă
 ## 💡 Scop
 
 Aplicația a fost creată pentru a simplifica urmărirea turelor de lucru fără introducere manuală zilnică.
-<img width="1280" height="2856" alt="Screenshot_20260420_204759" src="https://github.com/user-attachments/assets/4305c7b2-17de-431e-94a9-0e45a8ca8181" />
-<img width="1280" height="2856" alt="Screenshot_20260420_204839" src="https://github.com/user-attachments/assets/39a8c938-58b3-4c8c-8ac1-d63b78920590" />
+<img width="125" height="250" alt="Screenshot_20260420_204759" src="https://github.com/user-attachments/assets/4305c7b2-17de-431e-94a9-0e45a8ca8181" />
+<img width="125" height="250" alt="Screenshot_20260420_204839" src="https://github.com/user-attachments/assets/39a8c938-58b3-4c8c-8ac1-d63b78920590" />
