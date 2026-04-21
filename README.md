@@ -30,10 +30,10 @@ Totul este calculat automat în funcție de o dată de start.
 
 ## 📸 Screenshots
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/4305c7b2-17de-431e-94a9-0e45a8ca8181" width="200" style="margin-right:10px"/>
-  <img src="https://github.com/user-attachments/assets/39a8c938-58b3-4c8c-8ac1-d63b78920590" width="200" style="margin-right:10px"/>
-  <img src="https://github.com/user-attachments/assets/7ede72b5-5c48-4274-a796-ecaad8421a59" width="200" style="margin-right:10px" />
-  <img src="https://github.com/user-attachments/assets/c1c98ea4-1eba-4512-a917-acddc083da24" width="200"/>
+  <img src="https://github.com/user-attachments/assets/4305c7b2-17de-431e-94a9-0e45a8ca8181" width="180" style="margin-right:10px"/>
+  <img src="https://github.com/user-attachments/assets/39a8c938-58b3-4c8c-8ac1-d63b78920590" width="180" style="margin-right:10px"/>
+  <img src="https://github.com/user-attachments/assets/7ede72b5-5c48-4274-a796-ecaad8421a59" width="180" style="margin-right:10px" />
+  <img src="https://github.com/user-attachments/assets/c1c98ea4-1eba-4512-a917-acddc083da24" width="180"/>
 </p>
 ## 🚀 Status
 
