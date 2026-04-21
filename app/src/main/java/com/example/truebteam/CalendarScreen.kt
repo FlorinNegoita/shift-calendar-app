@@ -173,14 +173,17 @@ private val cycleStartDate = LocalDate.of(2025, 11, 3)
 private val SIMULATE_SHIFT_TODAY: String? = null
 private val DEBUG_TIME: LocalDateTime? = null  //LocalDateTime.of(2026, 8, 31, 22, 30)
 
+private const val SECRET_TAP_WINDOW_MS = 1000L
+private const val SECRET_TAP_TARGET = 5
+
 
 // ------------------------------------------------------------
-// CONCEDII
+// CONCEDII (valori implicite hardcodate)
 // când omul e în CO, nu ne mai interesează tura reală.
 // pace, liniște și eventual o cafea băută fără alarmă.
 // ------------------------------------------------------------
 
-private val vacationDays = setOf(
+private val defaultVacationDays = setOf(
     LocalDate.of(2026, 4, 10),
     LocalDate.of(2026, 4, 11),
     LocalDate.of(2026, 4, 12),
@@ -254,7 +257,7 @@ private val CoColor = Color(0xFFA78BFA)
 
 // verificări simple, dar foarte folositoare;
 // genul de funcții mici care îți salvează nervii mai târziu
-private fun isVacation(date: LocalDate): Boolean = date in vacationDays
+private fun isVacation(date: LocalDate, vacationDays: Set<LocalDate>): Boolean = date in vacationDays
 private fun isLegalHoliday(date: LocalDate): Boolean = date in legalHolidays
 
 // culoarea de accent pentru popup-ul zilei selectate
@@ -422,7 +425,7 @@ private fun Modifier.neuButtonShadow(
     pressed: Boolean = false
 ): Modifier = drawBehind {
     val corner = cornerRadius.toPx()
-    val darkShadow = Color(0xFF98ABBE)
+    val darkShadow = Color(0xFF98ABBE)   //0xFF98ABBE
 
     if (!pressed) {
         drawRoundRect(
@@ -491,14 +494,55 @@ private fun Modifier.neuButtonShadow(
     }
 }
 
+// ------------------------------------------------------------
+// FORMAT CO
+// zilele de concediu afișate compact: "5/09", "3/06-15/06", etc.
+// ------------------------------------------------------------
+
+private fun formatVacationSummary(days: Set<LocalDate>, month: YearMonth): String {
+    val sorted = days
+        .filter { it.year == month.year && it.month == month.month }
+        .sorted()
+    if (sorted.isEmpty()) return ""
+
+    // grupăm în intervale consecutive
+    val groups = mutableListOf<List<LocalDate>>()
+    var current = mutableListOf(sorted[0])
+    for (i in 1 until sorted.size) {
+        if (sorted[i] == sorted[i - 1].plusDays(1)) {
+            current.add(sorted[i])
+        } else {
+            groups.add(current)
+            current = mutableListOf(sorted[i])
+        }
+    }
+    groups.add(current)
+
+    return groups.joinToString(", ") { group ->
+        if (group.size == 1) {
+            "${group[0].dayOfMonth}/${String.format("%02d", group[0].monthValue)}"
+        } else {
+            "${group[0].dayOfMonth}/${String.format("%02d", group[0].monthValue)}-${group.last().dayOfMonth}/${String.format("%02d", group.last().monthValue)}"
+        }
+    }
+}
+
 @Composable
 fun CalendarScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val tapCountRef = remember { mutableStateOf(0) }
     val lastTapTimeRef = remember { mutableStateOf(0L) }
+    val coTapCountRef = remember { mutableStateOf(0) }
+    val coLastTapTimeRef = remember { mutableStateOf(0L) }
 
     val roLocale = remember { Locale.forLanguageTag("ro") }
     val density = LocalDensity.current
+
+    // zilele de CO – dinamice, editabile de utilizator
+    var vacationDays by remember { mutableStateOf(defaultVacationDays) }
+    var showVacationDialog by remember { mutableStateOf(false) }
+    // luna pentru care edităm CO (setată când deschidem dialogul)
+    var vacationEditMonth by remember { mutableStateOf(YearMonth.now()) }
 
     var selectedTeamIndex by remember { mutableStateOf(1) }
     val currentTeam = teams[selectedTeamIndex]
@@ -528,6 +572,7 @@ fun CalendarScreen() {
         direction = if (newMonth > currentMonth) 1 else -1
         currentMonth = newMonth
         tapCountRef.value = 0
+        coTapCountRef.value = 0
     }
 
     val currentNow = DEBUG_TIME ?: LocalDateTime.now()
@@ -545,7 +590,7 @@ fun CalendarScreen() {
         }
     }
 
-    val normHours = remember(currentMonth) {
+    val normHours = remember(currentMonth, vacationDays) {
         (1..currentMonth.lengthOfMonth()).count { day ->
             val date = currentMonth.atDay(day)
             val isWorkingDay = date.dayOfWeek in listOf(
@@ -555,15 +600,15 @@ fun CalendarScreen() {
                 DayOfWeek.THURSDAY,
                 DayOfWeek.FRIDAY
             )
-            isWorkingDay && !isVacation(date)
+            isWorkingDay && !isVacation(date, vacationDays)
         } * 8
     }
 
-    val workedHours = remember(currentMonth, selectedTeamIndex) {
+    val workedHours = remember(currentMonth, selectedTeamIndex, vacationDays) {
         (1..currentMonth.lengthOfMonth()).count { day ->
             val date = currentMonth.atDay(day)
             val isWorkedShift = getShiftForDate(date, currentTeam.offset) in listOf("SC1", "SC2", "SC3")
-            isWorkedShift && !isVacation(date)
+            isWorkedShift && !isVacation(date, vacationDays)
         } * 8
     }
 
@@ -609,10 +654,10 @@ fun CalendarScreen() {
             .background(
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color(0xFFEEF1F5),
-                        Color(0xFFEEF1F5),
-                        Color(0xFFD7E1F7),
-                        Color(0xFFBCCBFF)
+                        Color(0xFFEEF1F5), //0xFFEEF1F5
+                        Color(0xFFEEF1F5), //0xFFEEF1F5
+                        Color(0xFFD7E1F7), //0xFFD7E1F7
+                        Color(0xFFBCCBFF)  //0xFFBCCBFF
                     ),
                     start = Offset(0f, 0f),
                     end = Offset(1400f, 2400f)
@@ -718,12 +763,11 @@ fun CalendarScreen() {
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
+                            val now = System.currentTimeMillis()
+
                             if (currentMonth.month == Month.JULY) {
-
-                                val now = System.currentTimeMillis()
-
                                 val last = lastTapTimeRef.value
-                                val newCount = if (now - last <= 1000) {
+                                val newCount = if (now - last <= SECRET_TAP_WINDOW_MS) {
                                     tapCountRef.value + 1
                                 } else {
                                     1
@@ -732,13 +776,29 @@ fun CalendarScreen() {
                                 tapCountRef.value = newCount
                                 lastTapTimeRef.value = now
 
-                                if (newCount >= 5) {
+                                if (newCount >= SECRET_TAP_TARGET && !showTeamDialog) {
                                     showTeamDialog = true
                                     tapCountRef.value = 0
                                 }
+                            } else if (currentMonth.month == Month.JANUARY) {
+                                val last = coLastTapTimeRef.value
+                                val newCount = if (now - last <= SECRET_TAP_WINDOW_MS) {
+                                    coTapCountRef.value + 1
+                                } else {
+                                    1
+                                }
 
+                                coTapCountRef.value = newCount
+                                coLastTapTimeRef.value = now
+
+                                if (newCount >= SECRET_TAP_TARGET && !showVacationDialog) {
+                                    vacationEditMonth = currentMonth
+                                    showVacationDialog = true
+                                    coTapCountRef.value = 0
+                                }
                             } else {
                                 tapCountRef.value = 0
+                                coTapCountRef.value = 0
                             }
                         },
                     textAlign = TextAlign.Center,
@@ -850,7 +910,7 @@ fun CalendarScreen() {
                     ) {
                         items(monthCells) { cell ->
                             val realShift = getShiftForDate(cell.date, currentTeam.offset)
-                            val vacation = isVacation(cell.date)
+                            val vacation = isVacation(cell.date, vacationDays)
                             val displayShift = if (vacation) "CO" else realShift
                             val isToday = cell.date == today
 
@@ -885,6 +945,37 @@ fun CalendarScreen() {
                 LegendItem(Sc3Color, "SC3")
                 LegendItem(LibColor, "LIB")
                 LegendItem(CoColor, "CO")
+            }
+
+            // ------------------------------------------------------------
+            // RÂNDUL CO AL LUNII CURENTE
+            // afișează zilele de concediu compact: "5/09", "3/06-15/06"
+            // ------------------------------------------------------------
+            val coSummary = formatVacationSummary(vacationDays, currentMonth)
+            if (coSummary.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(CoColor)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = "CO: $coSummary",
+                        fontSize = 12.sp,
+                        color = CoColor,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -929,7 +1020,7 @@ fun CalendarScreen() {
             val overlaySize = todayCellSize
 
             if (overlayOffset != null && overlaySize != null) {
-                val overlayDisplayShift = if (isVacation(today)) "CO" else getShiftForDate(today, currentTeam.offset)
+                val overlayDisplayShift = if (isVacation(today, vacationDays)) "CO" else getShiftForDate(today, currentTeam.offset)
                 val overlayRealShift = getShiftForDate(today, currentTeam.offset)
 
                 Box(
@@ -965,7 +1056,7 @@ fun CalendarScreen() {
 
         selectedDate?.let { date ->
             val realShift = getShiftForDate(date, currentTeam.offset)
-            val vacation = isVacation(date)
+            val vacation = isVacation(date, vacationDays)
             val displayShift = if (vacation) "CO" else realShift
 
             AlertDialog(
@@ -988,7 +1079,7 @@ fun CalendarScreen() {
                         Box(
                             modifier = Modifier
                                 .height(3.dp)
-                                .fillMaxWidth(0.35f)
+                                .fillMaxWidth(0.4f)
                                 .clip(RoundedCornerShape(99.dp))
                                 .background(popupAccentColor(displayShift).copy(alpha = 0.75f))
                         )
@@ -1060,14 +1151,29 @@ fun CalendarScreen() {
                                 color = Color(0xFF4B5563)
                             )
                         }
-                        Text(
-                            text = "Alege tura ta cu 5 click-uri pe luna IULIE",
-                            fontSize = 12.sp,
-                            color = Color(0xFFD65A5A),
-                            lineHeight = 18.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.alpha(0.95f)
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Alege tura cu 5 click-uri pe IULIE",
+                                fontSize = 13.sp,
+                                color = Color(0xFFD65A5A),
+                                lineHeight = 18.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.alpha(0.95f)
+                            )
+
+                            Spacer(modifier = Modifier.height(2.dp))
+
+                            Text(
+                                text = "Alege CO și luna cu 5 click-uri pe IANUARIE",
+                                fontSize = 13.sp,
+                                color = CoColor,
+                                lineHeight = 18.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.alpha(0.95f)
+                            )
+                        }
                     }
                 },
                 confirmButton = {
@@ -1202,6 +1308,195 @@ fun CalendarScreen() {
 
                 },
                 confirmButton = {},
+                shape = RoundedCornerShape(28.dp),
+                containerColor = Color(0xFFF7F9FC),
+                tonalElevation = 0.dp
+            )
+        }
+
+        // ------------------------------------------------------------
+        // DIALOGUL DE EDITARE CO
+        // 5 click-uri pe IANUARIE → selectezi/deselectezi zile CO
+        // ------------------------------------------------------------
+        if (showVacationDialog) {
+            val editYear = vacationEditMonth.year
+            val editMonthVal = vacationEditMonth.month
+            val daysInMonth = vacationEditMonth.lengthOfMonth()
+            val monthName = vacationEditMonth.month
+                .getDisplayName(JavaTextStyle.FULL_STANDALONE, Locale.forLanguageTag("ro"))
+                .uppercase(Locale.forLanguageTag("ro"))
+
+            AlertDialog(
+                onDismissRequest = { /* nu închidem pe tap exterior */  },
+                title = {
+                    Column {
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Text(
+                            text = "Editor concediu",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = CoColor
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .height(3.dp)
+                                .fillMaxWidth(0.42f)
+                                .clip(RoundedCornerShape(99.dp))
+                                .background(CoColor.copy(alpha = 0.75f))
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            NavCircleButton(
+                                text = "‹",
+                                onClick = {
+                                    vacationEditMonth = vacationEditMonth.minusMonths(1)
+                                }
+                            )
+
+                            Text(
+                                text = "$monthName $editYear",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF374151),
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            NavCircleButton(
+                                text = "›",
+                                onClick = {
+                                    vacationEditMonth = vacationEditMonth.plusMonths(1)
+                                }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Apasă pe zi ca să adaugi sau să ștergi CO",
+                            fontSize = 12.sp,
+                            color = Color(0xFF6B7280)
+                        )
+                    }
+                },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        val firstDayOffset = (vacationEditMonth.atDay(1).dayOfWeek.value + 6) % 7
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            listOf("L", "M", "M", "J", "V", "S", "D").forEach { d ->
+                                Box(
+                                    modifier = Modifier.weight(1f),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = d,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF6B7280)
+                                    )
+                                }
+                            }
+                        }
+
+                        val totalCells = firstDayOffset + daysInMonth
+                        val rows = (totalCells + 6) / 7
+
+                        for (row in 0 until rows) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                for (col in 0 until 7) {
+                                    val cellIndex = row * 7 + col
+                                    val dayNum = cellIndex - firstDayOffset + 1
+
+                                    if (dayNum < 1 || dayNum > daysInMonth) {
+                                        Box(modifier = Modifier.weight(1f))
+                                    } else {
+                                        val cellDate = LocalDate.of(editYear, editMonthVal, dayNum)
+                                        val isCo = cellDate in vacationDays
+
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(
+                                                    if (isCo) CoColor.copy(alpha = 0.85f)
+                                                    else Color(0xFFE8EBF0)
+                                                )
+                                                .clickable {
+                                                    vacationDays = if (isCo) {
+                                                        vacationDays - cellDate
+                                                    } else {
+                                                        vacationDays + cellDate
+                                                    }
+                                                }
+                                                .padding(vertical = 6.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = dayNum.toString(),
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isCo) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (isCo) Color.White else Color(0xFF374151)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        val summary = formatVacationSummary(vacationDays, vacationEditMonth)
+                        if (summary.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "CO: $summary",
+                                fontSize = 12.sp,
+                                color = CoColor,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showVacationDialog = false
+                            changeMonth(YearMonth.from(DEBUG_TIME ?: LocalDateTime.now()))
+                            todayAnimationTrigger++
+                        },
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = CoColor,
+                            contentColor = Color.White
+                        ),
+                        elevation = ButtonDefaults.buttonElevation(
+                            defaultElevation = 0.dp,
+                            pressedElevation = 0.dp
+                        )
+                    ) {
+                        Text(text = "Gata", fontWeight = FontWeight.SemiBold)
+                    }
+
+                },
                 shape = RoundedCornerShape(28.dp),
                 containerColor = Color(0xFFF7F9FC),
                 tonalElevation = 0.dp
@@ -1404,7 +1699,7 @@ private fun CalendarDayCell(
         label = "borderWidth"
     )
 
-    val neoShadow = Color(0xFF98ABBE)
+    val neoShadow = Color(0xFF98ABBE)  //0xFF98ABBE
     val baseAlpha = if (isOtherMonth) 0.42f else 1f
 
     // placeholder-ul real al zilei de azi din grid e invizibil;
@@ -1423,7 +1718,7 @@ private fun CalendarDayCell(
     val borderColor = when {
         isToday && startTodayAnimation -> Color(0xFFE53935).copy(alpha = borderAnim)
         isToday -> Color(0xFFE53935).copy(alpha = 0.65f)
-        isOtherMonth -> Color(0xFF000000).copy(alpha = 0.65f)
+        isOtherMonth -> Color(0xFF000000).copy(alpha = 0.85f)
         else -> Color.White.copy(alpha = 0.42f)
     }
 
