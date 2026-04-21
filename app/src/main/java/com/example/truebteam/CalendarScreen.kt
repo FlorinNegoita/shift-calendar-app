@@ -1,5 +1,6 @@
 package com.example.turecalendar.ui
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
@@ -101,10 +102,10 @@ data class TeamConfig(
 )
 
 private val teams = listOf(
-    TeamConfig("TEAM A", "TEAM A", -2),
-    TeamConfig("TEAM B", "TEAM B", 0),
-    TeamConfig("TEAM C", "TEAM C", 2),
-    TeamConfig("TEAM D", "TEAM D", 4)
+    TeamConfig("TEAM A", "TEAM A - aLu'Cristi", -2),
+    TeamConfig("TEAM B", "TEAM B - aLu'Primaru 😉 ", 0),
+    TeamConfig("TEAM C", "TEAM C - aLu'Catuta", 2),
+    TeamConfig("TEAM D", "TEAM D - aLu'Ion", 4)
 )
 //............................................................
 //
@@ -447,22 +448,37 @@ private fun Modifier.neuButtonShadow(
             cornerRadius = CornerRadius(corner, corner)
         )
 
+        val s1 = 1.5.dp.toPx()
+        val s2 = 3.dp.toPx()
+        val s3 = 4.5.dp.toPx()
+
         drawRoundRect(
-            color = darkShadow.copy(alpha = 0.6f),
-            topLeft = Offset(3.dp.toPx(), 3.dp.toPx()),
-            size = size,
+            color = darkShadow.copy(alpha = 0.42f),
+            topLeft = Offset(s1, s1),
+            size = androidx.compose.ui.geometry.Size(
+                width = size.width - s1,
+                height = size.height - s1
+            ),
             cornerRadius = CornerRadius(corner, corner)
         )
+
         drawRoundRect(
-            color = darkShadow.copy(alpha = 0.3f),
-            topLeft = Offset(6.dp.toPx(), 6.dp.toPx()),
-            size = size,
+            color = darkShadow.copy(alpha = 0.20f),
+            topLeft = Offset(s2, s2),
+            size = androidx.compose.ui.geometry.Size(
+                width = size.width - s2,
+                height = size.height - s2
+            ),
             cornerRadius = CornerRadius(corner, corner)
         )
+
         drawRoundRect(
-            color = darkShadow.copy(alpha = 0.1f),
-            topLeft = Offset(9.dp.toPx(), 9.dp.toPx()),
-            size = size,
+            color = darkShadow.copy(alpha = 0.05f),
+            topLeft = Offset(s3, s3),
+            size = androidx.compose.ui.geometry.Size(
+                width = size.width - s3,
+                height = size.height - s3
+            ),
             cornerRadius = CornerRadius(corner, corner)
         )
     } else {
@@ -1155,23 +1171,25 @@ fun CalendarScreen() {
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Alege tura cu 5 click-uri pe IULIE",
+                                text = "Alege TURA cu 5 click-uri pe IULIE",
                                 fontSize = 13.sp,
                                 color = Color(0xFFD65A5A),
                                 lineHeight = 18.sp,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.alpha(0.95f)
+                                textAlign = TextAlign.Start,
+                                modifier = Modifier.fillMaxWidth(),
+                                //modifier = Modifier.alpha(0.95f)
                             )
 
                             Spacer(modifier = Modifier.height(2.dp))
 
                             Text(
-                                text = "Alege CO și luna cu 5 click-uri pe IANUARIE",
+                                text = "Alege CONCEDIU cu 5 click-uri pe IANUARIE",
                                 fontSize = 13.sp,
                                 color = CoColor,
                                 lineHeight = 18.sp,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.alpha(0.95f)
+                                textAlign = TextAlign.Start,
+                                modifier = Modifier.fillMaxWidth(),
+                               // modifier = Modifier.alpha(0.95f)
                             )
                         }
                     }
@@ -1383,9 +1401,11 @@ fun CalendarScreen() {
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "Apasă pe zi ca să adaugi sau să ștergi CO",
+                            text = "Alege luna si ziua pentru CO",
+                            modifier = Modifier.fillMaxWidth(),
                             fontSize = 12.sp,
-                            color = Color(0xFF6B7280)
+                            color = Color(0xFF6B7280),
+                            textAlign = TextAlign.Center
                         )
                     }
                 },
@@ -1439,6 +1459,11 @@ fun CalendarScreen() {
                                                 .background(
                                                     if (isCo) CoColor.copy(alpha = 0.85f)
                                                     else Color(0xFFE8EBF0)
+                                                )
+                                                .border(
+                                                    width = 0.3.dp,
+                                                    color = Color(0xFF000000),  //0xFF7A8494
+                                                    shape = RoundedCornerShape(6.dp)
                                                 )
                                                 .clickable {
                                                     vacationDays = if (isCo) {
@@ -1774,7 +1799,7 @@ private fun CalendarDayCell(
                     )
                     drawRoundRect(
                         color = Color.White.copy(alpha = 0.45f),
-                        topLeft = Offset((-4).dp.toPx(), (-4).dp.toPx()),
+                        topLeft = Offset((-3).dp.toPx(), (-3).dp.toPx()),
                         size = size,
                         cornerRadius = CornerRadius(corner, corner)
                     )
