@@ -652,16 +652,16 @@ fun CalendarScreen() {
         }
     }
 
-    val overtimeText = when {
-        overtime > 0 -> "OVERTIME = $overtime ore"
-        overtime <= 0 -> "Frățioare, luna asta ești pe 0"
-        else -> "Frățioare, luna asta ești pe 0"
+    val overtimeText = if (overtime > 0) {
+        "OVERTIME = $overtime ore"
+    } else {
+        "Frățioare, luna asta ești pe 0"
     }
 
-    val overtimeColor = when {
-        overtime > 0 -> Color(0xFF0F8A3B)
-        overtime <= 0 -> Color(0xFFD65A5A)
-        else -> Color(0xFF555555)
+    val overtimeColor = if (overtime > 0) {
+        Color(0xFF0F8A3B)
+    } else {
+        Color(0xFFD65A5A)
     }
 
     Box(
@@ -1882,8 +1882,8 @@ private fun CalendarDayCell(
             ) {
                 Text(
                     text = dayNumber.toString(),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Normal,
+                    fontSize = if (isHoliday && !isOtherMonth) 24.sp else 13.sp,
+                    fontWeight = if (isHoliday && !isOtherMonth) FontWeight.Bold else FontWeight.Normal,
                     color = dateColor
                 )
 
