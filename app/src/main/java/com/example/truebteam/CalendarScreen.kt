@@ -652,16 +652,15 @@ fun CalendarScreen() {
         }
     }
 
-    val overtimeText = if (overtime > 0) {
-        "OVERTIME = $overtime ore"
-    } else {
-        "Frățioare, luna asta ești pe 0"
+    val overtimeText = when{
+        overtime > 0 -> "OVERTIME = $overtime ore"
+        overtime < 0 -> "Esti pe minus...normativ ore insuficient"
+        else -> "Fratioare luna asta esti pe zero"
     }
-
-    val overtimeColor = if (overtime > 0) {
-        Color(0xFF0F8A3B)
-    } else {
-        Color(0xFFD65A5A)
+    val overtimeColor = when{
+        overtime > 0 -> Color(0xFF0F8A3B)
+        overtime < 0 -> Color(0xFF000000)
+        else -> Color(0xFFEF4444)
     }
 
     Box(
