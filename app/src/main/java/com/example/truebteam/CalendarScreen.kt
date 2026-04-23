@@ -1,5 +1,9 @@
 package com.example.turecalendar.ui
 
+import com.example.turecalendar.widget.updateShiftWidgets
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.AnimatedContent
@@ -102,10 +106,10 @@ data class TeamConfig(
 )
 
 private val teams = listOf(
-    TeamConfig("TEAM A", "TEAM A", -2),
-    TeamConfig("TEAM B", "TEAM B", 0),
-    TeamConfig("TEAM C", "TEAM C", 2),
-    TeamConfig("TEAM D", "TEAM D", 4)
+    TeamConfig("TEAM A", "TEAM A - aLu'Cristi", -2),
+    TeamConfig("TEAM B", "TEAM B - aLu'Primaru' 😉", 0),
+    TeamConfig("TEAM C", "TEAM C - aLu'Catuta", 2),
+    TeamConfig("TEAM D", "TEAM D - aLu'Ion", 4)
 )
 //............................................................
 //
@@ -258,6 +262,8 @@ private val CoColor = Color(0xFFA78BFA)
 
 // verificări simple, dar foarte folositoare;
 // genul de funcții mici care îți salvează nervii mai târziu
+
+val CO_KEY = "vacation_dates"
 private fun isVacation(date: LocalDate, vacationDays: Set<LocalDate>): Boolean = date in vacationDays
 private fun isLegalHoliday(date: LocalDate): Boolean = date in legalHolidays
 
@@ -554,13 +560,31 @@ fun CalendarScreen() {
     val roLocale = remember { Locale.forLanguageTag("ro") }
     val density = LocalDensity.current
 
+    val context = LocalContext.current
+
+    val prefs = remember {
+        context.getSharedPreferences("shift_prefs", android.content.Context.MODE_PRIVATE)
+    }
+
     // zilele de CO – dinamice, editabile de utilizator
-    var vacationDays by remember { mutableStateOf(defaultVacationDays) }
+    var vacationDays by remember {
+        val saved = prefs.getStringSet(CO_KEY, null)
+
+        mutableStateOf(
+            if (saved != null) {
+                saved.map { LocalDate.parse(it) }.toSet()
+            } else {
+                defaultVacationDays
+            }
+        )
+    }
     var showVacationDialog by remember { mutableStateOf(false) }
     // luna pentru care edităm CO (setată când deschidem dialogul)
     var vacationEditMonth by remember { mutableStateOf(YearMonth.now()) }
 
-    var selectedTeamIndex by remember { mutableStateOf(1) }
+    var selectedTeamIndex by remember {
+        mutableStateOf(prefs.getInt("selected_team_index", 1))
+    }
     val currentTeam = teams[selectedTeamIndex]
 
 
@@ -1268,12 +1292,21 @@ fun CalendarScreen() {
                                     .background(SurfaceSoft)
                                     .clickable {
                                         selectedTeamIndex = index
+
+                                        // salvăm echipa în SharedPreferences
+                                        prefs.edit().putInt("selected_team_index", index).apply()
+
+                                        // forțăm widgetul să se actualizeze imediat
+                                        CoroutineScope(Dispatchers.IO).launch {
+                                            updateShiftWidgets(context)
+                                        }
+
                                         showTeamDialog = false
 
-                                        // 🔥 sari pe luna curentă
+                                        // sărim pe luna curentă
                                         changeMonth(YearMonth.from(LocalDate.now()))
 
-                                        // 🔥 pornește animația "Azi"
+                                        // repornim animația pentru "azi"
                                         todayAnimationTrigger++
                                     }
                                     .padding(horizontal = 16.dp, vertical = 14.dp)
@@ -1342,6 +1375,12 @@ fun CalendarScreen() {
             val monthName = vacationEditMonth.month
                 .getDisplayName(JavaTextStyle.FULL_STANDALONE, Locale.forLanguageTag("ro"))
                 .uppercase(Locale.forLanguageTag("ro"))
+            val currentYear = (DEBUG_TIME ?: LocalDateTime.now()).year
+            val minVacationMonth = YearMonth.of(currentYear, 1)
+            val maxVacationMonth = YearMonth.of(currentYear, 12)
+
+            val canGoPrev = vacationEditMonth > minVacationMonth
+            val canGoNext = vacationEditMonth < maxVacationMonth
 
             AlertDialog(
                 onDismissRequest = { /* nu închidem pe tap exterior */  },
@@ -1376,8 +1415,11 @@ fun CalendarScreen() {
                             NavCircleButton(
                                 text = "‹",
                                 onClick = {
-                                    vacationEditMonth = vacationEditMonth.minusMonths(1)
-                                }
+                                    if (canGoPrev) {
+                                        vacationEditMonth = vacationEditMonth.minusMonths(1)
+                                    }
+                                },
+                                enabled = canGoPrev
                             )
 
                             Text(
@@ -1392,8 +1434,11 @@ fun CalendarScreen() {
                             NavCircleButton(
                                 text = "›",
                                 onClick = {
-                                    vacationEditMonth = vacationEditMonth.plusMonths(1)
-                                }
+                                    if (canGoNext) {
+                                        vacationEditMonth = vacationEditMonth.plusMonths(1)
+                                    }
+                                },
+                                enabled = canGoNext
                             )
                         }
 
@@ -1465,10 +1510,23 @@ fun CalendarScreen() {
                                                     shape = RoundedCornerShape(6.dp)
                                                 )
                                                 .clickable {
-                                                    vacationDays = if (isCo) {
+                                                    val updatedVacationDays = if (isCo) {
                                                         vacationDays - cellDate
                                                     } else {
                                                         vacationDays + cellDate
+                                                    }
+
+                                                    vacationDays = updatedVacationDays
+
+                                                    prefs.edit()
+                                                        .putStringSet(
+                                                            CO_KEY,
+                                                            updatedVacationDays.map { it.toString() }.toSet()
+                                                        )
+                                                        .apply()
+
+                                                    CoroutineScope(Dispatchers.IO).launch {
+                                                        updateShiftWidgets(context)
                                                     }
                                                 }
                                                 .padding(vertical = 6.dp),
@@ -1503,6 +1561,10 @@ fun CalendarScreen() {
                 confirmButton = {
                     Button(
                         onClick = {
+                            CoroutineScope(Dispatchers.IO).launch {
+                                updateShiftWidgets(context)
+                            }
+
                             showVacationDialog = false
                             changeMonth(YearMonth.from(DEBUG_TIME ?: LocalDateTime.now()))
                             todayAnimationTrigger++
@@ -1571,25 +1633,29 @@ private fun buildCalendarCells(month: YearMonth): List<CalendarCell> {
 @Composable
 private fun NavCircleButton(
     text: String,
-    onClick: () -> Unit
-) {
+    onClick: () -> Unit,
+    enabled: Boolean = true
+){
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.93f else 1f,
+        targetValue = if (enabled && isPressed) 0.93f else 1f,
         animationSpec = spring(dampingRatio = 0.60f, stiffness = 700f),
         label = "navButtonScale"
     )
 
     Button(
         onClick = onClick,
+        enabled = enabled,
         interactionSource = interactionSource,
         shape = CircleShape,
         contentPadding = PaddingValues(0.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = SurfaceSoft,
-            contentColor = MonthBlue
+            containerColor = if (enabled) SurfaceSoft else SurfaceSoft.copy(alpha = 0.55f),
+            contentColor = if (enabled) MonthBlue else MonthBlue.copy(alpha = 0.35f),
+            disabledContainerColor = SurfaceSoft.copy(alpha = 0.55f),
+            disabledContentColor = MonthBlue.copy(alpha = 0.35f)
         ),
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = 0.dp,
