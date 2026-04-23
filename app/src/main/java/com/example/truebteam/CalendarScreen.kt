@@ -111,12 +111,6 @@ private val teams = listOf(
     TeamConfig("TEAM C", "TEAM C", 2),
     TeamConfig("TEAM D", "TEAM D", 4)
 )
-//............................................................
-//
-//
-//.............................................................
-
-
 
 // ------------------------------------------------------------
 // MESAJELE MOTIVAȚIONALE
@@ -307,6 +301,7 @@ fun getShiftForDate(date: LocalDate): String {
 
 // aici nu ne uităm doar la zi, ci și la oră,
 // pentru că SC3 e o fiară specială: începe într-o zi și se termină în alta
+
 fun getEffectiveShift(now: LocalDateTime = LocalDateTime.now(), offset: Int = 0): String {
     val today = now.toLocalDate()
     val time = now.toLocalTime()
@@ -567,6 +562,7 @@ fun CalendarScreen() {
     }
 
     // zilele de CO – dinamice, editabile de utilizator
+    
     var vacationDays by remember {
         val saved = prefs.getStringSet(CO_KEY, null)
 
@@ -605,6 +601,7 @@ fun CalendarScreen() {
 
     // poziția reală a celulei de azi în grid;
     // de aici desenăm overlay-ul deasupra la tot
+    
     var todayCellOffset by remember { mutableStateOf<Offset?>(null) }
     var todayCellSize by remember { mutableStateOf<IntSize?>(null) }
 
@@ -623,6 +620,7 @@ fun CalendarScreen() {
 
     // când nu suntem în luna curentă reală, ștergem overlay-ul,
     // ca să nu rămână fantoma zilei de azi plutind aiurea
+    
     LaunchedEffect(currentMonth, today) {
         if (currentMonth != YearMonth.from(today)) {
             todayCellOffset = null
@@ -990,6 +988,7 @@ fun CalendarScreen() {
             // RÂNDUL CO AL LUNII CURENTE
             // afișează zilele de concediu compact: "5/09", "3/06-15/06"
             // ------------------------------------------------------------
+            
             val coSummary = formatVacationSummary(vacationDays, currentMonth)
             if (coSummary.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -1054,6 +1053,7 @@ fun CalendarScreen() {
         // AICI e miezul problemei rezolvate:
         // ziua de azi se desenează separat, deasupra la tot.
         // ------------------------------------------------------------
+        
         if (currentMonth == YearMonth.from(today)) {
             val overlayOffset = todayCellOffset
             val overlaySize = todayCellSize
@@ -1368,6 +1368,7 @@ fun CalendarScreen() {
         // DIALOGUL DE EDITARE CO
         // 5 click-uri pe IANUARIE → selectezi/deselectezi zile CO
         // ------------------------------------------------------------
+        
         if (showVacationDialog) {
             val editYear = vacationEditMonth.year
             val editMonthVal = vacationEditMonth.month
@@ -1794,6 +1795,7 @@ private fun CalendarDayCell(
 
     // placeholder-ul real al zilei de azi din grid e invizibil;
     // overlay-ul este vedeta adevărată
+    
     val visibleAlpha = when {
         isToday && !isOverlay -> 0f
         else -> baseAlpha
