@@ -189,6 +189,13 @@ private const val SECRET_TAP_TARGET = 5
 // ------------------------------------------------------------
 
 private val defaultVacationDays = setOf(
+    LocalDate.of(2026, 1, 1),
+    LocalDate.of(2026, 1, 2),
+    LocalDate.of(2026, 1, 3),
+    LocalDate.of(2026, 1, 4),
+    LocalDate.of(2026, 1, 5),
+    LocalDate.of(2026, 1, 6),
+    LocalDate.of(2026, 1, 7),
     LocalDate.of(2026, 4, 10),
     LocalDate.of(2026, 4, 11),
     LocalDate.of(2026, 4, 12),
