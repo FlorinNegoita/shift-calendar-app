@@ -189,6 +189,13 @@ private const val SECRET_TAP_TARGET = 5
 // ------------------------------------------------------------
 
 private val defaultVacationDays = setOf(
+    LocalDate.of(2026, 1, 1),
+    LocalDate.of(2026, 1, 2),
+    LocalDate.of(2026, 1, 3),
+    LocalDate.of(2026, 1, 4),
+    LocalDate.of(2026, 1, 5),
+    LocalDate.of(2026, 1, 6),
+    LocalDate.of(2026, 1, 7),
     LocalDate.of(2026, 4, 10),
     LocalDate.of(2026, 4, 11),
     LocalDate.of(2026, 4, 12),
@@ -263,7 +270,25 @@ private val CoColor = Color(0xFFA78BFA)
 // verificări simple, dar foarte folositoare;
 // genul de funcții mici care îți salvează nervii mai târziu
 
-val CO_KEY = "vacation_dates"
+private const val OLD_CO_KEY = "vacation_dates"
+private const val CO_KEY_PREFIX = "vacation_dates_team_"
+private const val HIDDEN_DEFAULT_CO_KEY = "vacation_default_hidden"
+
+private fun coKeyForTeam(teamIndex: Int): String = "$CO_KEY_PREFIX$teamIndex"
+
+private fun parseVacationDays(saved: Set<String>?): Set<LocalDate> {
+    return saved
+        ?.mapNotNull { dateText ->
+            runCatching { LocalDate.parse(dateText) }.getOrNull()
+        }
+        ?.toSet()
+        ?: emptySet()
+}
+
+private fun vacationDaysToPrefs(days: Set<LocalDate>): Set<String> {
+    return days.map { it.toString() }.toSet()
+}
+
 private fun isVacation(date: LocalDate, vacationDays: Set<LocalDate>): Boolean = date in vacationDays
 private fun isLegalHoliday(date: LocalDate): Boolean = date in legalHolidays
 
@@ -566,26 +591,61 @@ fun CalendarScreen() {
         context.getSharedPreferences("shift_prefs", android.content.Context.MODE_PRIVATE)
     }
 
-    // zilele de CO – dinamice, editabile de utilizator
-    var vacationDays by remember {
-        val saved = prefs.getStringSet(CO_KEY, null)
-
-        mutableStateOf(
-            if (saved != null) {
-                saved.map { LocalDate.parse(it) }.toSet()
-            } else {
-                defaultVacationDays
-            }
-        )
-    }
-    var showVacationDialog by remember { mutableStateOf(false) }
-    // luna pentru care edităm CO (setată când deschidem dialogul)
-    var vacationEditMonth by remember { mutableStateOf(YearMonth.now()) }
-
     var selectedTeamIndex by remember {
         mutableStateOf(prefs.getInt("selected_team_index", 1))
     }
     val currentTeam = teams[selectedTeamIndex]
+
+    fun loadHiddenDefaultVacationDays(): Set<LocalDate> {
+        return parseVacationDays(prefs.getStringSet(HIDDEN_DEFAULT_CO_KEY, null))
+    }
+
+    fun loadManualVacationDaysForTeam(teamIndex: Int): Set<LocalDate> {
+        val teamKey = coKeyForTeam(teamIndex)
+
+        val savedForThisTeam = prefs.getStringSet(teamKey, null)
+        if (savedForThisTeam != null) {
+            // Aici păstrăm DOAR CO-ul ales manual pentru echipa curentă.
+            // CO-ul prestabilit este global și se adaugă separat.
+            return parseVacationDays(savedForThisTeam) - defaultVacationDays
+        }
+
+        // Migrare din cheia veche: ce era salvat global îl punem doar pe TEAM B
+        // ca zile manuale, fără să duplicăm zilele prestabilite.
+        val oldManualDays = if (teamIndex == 1) {
+            parseVacationDays(prefs.getStringSet(OLD_CO_KEY, null)) - defaultVacationDays
+        } else {
+            emptySet()
+        }
+
+        if (teamIndex == 1 && oldManualDays.isNotEmpty()) {
+            prefs.edit()
+                .putStringSet(teamKey, vacationDaysToPrefs(oldManualDays))
+                .apply()
+        }
+
+        return oldManualDays
+    }
+
+    // CO prestabilit ascuns/șters de utilizator. Este global pentru toate turele.
+    var hiddenDefaultVacationDays by remember {
+        mutableStateOf(loadHiddenDefaultVacationDays())
+    }
+
+    // CO ales manual. Este separat pentru fiecare echipă/tură.
+    var manualVacationDays by remember(selectedTeamIndex) {
+        mutableStateOf(loadManualVacationDaysForTeam(selectedTeamIndex))
+    }
+
+    // Formula finală:
+    // CO afișat = CO prestabilit global - CO prestabilit șters + CO manual al echipei curente
+    val vacationDays = remember(hiddenDefaultVacationDays, manualVacationDays) {
+        (defaultVacationDays - hiddenDefaultVacationDays) + manualVacationDays
+    }
+
+    var showVacationDialog by remember { mutableStateOf(false) }
+    // luna pentru care edităm CO (setată când deschidem dialogul)
+    var vacationEditMonth by remember { mutableStateOf(YearMonth.now()) }
 
 
     var showTeamDialog by remember { mutableStateOf(false) }
@@ -1212,7 +1272,7 @@ fun CalendarScreen() {
                                 lineHeight = 18.sp,
                                 textAlign = TextAlign.Start,
                                 modifier = Modifier.fillMaxWidth(),
-                               // modifier = Modifier.alpha(0.95f)
+                                // modifier = Modifier.alpha(0.95f)
                             )
                         }
                     }
@@ -1445,7 +1505,7 @@ fun CalendarScreen() {
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "Alege luna si ziua pentru CO",
+                            text = "Alege CO pentru ${currentTeam.title}",
                             modifier = Modifier.fillMaxWidth(),
                             fontSize = 12.sp,
                             color = Color(0xFF6B7280),
@@ -1494,7 +1554,11 @@ fun CalendarScreen() {
                                         Box(modifier = Modifier.weight(1f))
                                     } else {
                                         val cellDate = LocalDate.of(editYear, editMonthVal, dayNum)
-                                        val isCo = cellDate in vacationDays
+                                        val isDefaultCo = cellDate in defaultVacationDays
+                                        val isHiddenDefaultCo = cellDate in hiddenDefaultVacationDays
+                                        val isVisibleDefaultCo = isDefaultCo && !isHiddenDefaultCo
+                                        val isManualCo = cellDate in manualVacationDays
+                                        val isCo = isVisibleDefaultCo || isManualCo
 
                                         Box(
                                             modifier = Modifier
@@ -1510,20 +1574,77 @@ fun CalendarScreen() {
                                                     shape = RoundedCornerShape(6.dp)
                                                 )
                                                 .clickable {
-                                                    val updatedVacationDays = if (isCo) {
-                                                        vacationDays - cellDate
-                                                    } else {
-                                                        vacationDays + cellDate
+                                                    val editor = prefs.edit()
+
+                                                    when {
+                                                        // Zi CO prestabilită și vizibilă:
+                                                        // o ascundem global, deci dispare de pe toate turele.
+                                                        isVisibleDefaultCo -> {
+                                                            val updatedHiddenDefaultDays = hiddenDefaultVacationDays + cellDate
+                                                            val updatedManualDays = manualVacationDays - cellDate
+
+                                                            hiddenDefaultVacationDays = updatedHiddenDefaultDays
+                                                            manualVacationDays = updatedManualDays
+
+                                                            editor
+                                                                .putStringSet(
+                                                                    HIDDEN_DEFAULT_CO_KEY,
+                                                                    vacationDaysToPrefs(updatedHiddenDefaultDays)
+                                                                )
+                                                                .putStringSet(
+                                                                    coKeyForTeam(selectedTeamIndex),
+                                                                    vacationDaysToPrefs(updatedManualDays)
+                                                                )
+                                                        }
+
+                                                        // Zi CO manuală pentru echipa curentă:
+                                                        // o scoatem doar de pe echipa curentă.
+                                                        isManualCo -> {
+                                                            val updatedManualDays = manualVacationDays - cellDate
+
+                                                            manualVacationDays = updatedManualDays
+
+                                                            editor.putStringSet(
+                                                                coKeyForTeam(selectedTeamIndex),
+                                                                vacationDaysToPrefs(updatedManualDays)
+                                                            )
+                                                        }
+
+                                                        // Zi prestabilită, dar ascunsă anterior:
+                                                        // o readucem global pe toate turele.
+                                                        isHiddenDefaultCo -> {
+                                                            val updatedHiddenDefaultDays = hiddenDefaultVacationDays - cellDate
+                                                            val updatedManualDays = manualVacationDays - cellDate
+
+                                                            hiddenDefaultVacationDays = updatedHiddenDefaultDays
+                                                            manualVacationDays = updatedManualDays
+
+                                                            editor
+                                                                .putStringSet(
+                                                                    HIDDEN_DEFAULT_CO_KEY,
+                                                                    vacationDaysToPrefs(updatedHiddenDefaultDays)
+                                                                )
+                                                                .putStringSet(
+                                                                    coKeyForTeam(selectedTeamIndex),
+                                                                    vacationDaysToPrefs(updatedManualDays)
+                                                                )
+                                                        }
+
+                                                        // Zi normală:
+                                                        // o adăugăm ca CO manual doar pentru echipa curentă.
+                                                        else -> {
+                                                            val updatedManualDays = manualVacationDays + cellDate
+
+                                                            manualVacationDays = updatedManualDays
+
+                                                            editor.putStringSet(
+                                                                coKeyForTeam(selectedTeamIndex),
+                                                                vacationDaysToPrefs(updatedManualDays)
+                                                            )
+                                                        }
                                                     }
 
-                                                    vacationDays = updatedVacationDays
-
-                                                    prefs.edit()
-                                                        .putStringSet(
-                                                            CO_KEY,
-                                                            updatedVacationDays.map { it.toString() }.toSet()
-                                                        )
-                                                        .apply()
+                                                    editor.apply()
 
                                                     CoroutineScope(Dispatchers.IO).launch {
                                                         updateShiftWidgets(context)
