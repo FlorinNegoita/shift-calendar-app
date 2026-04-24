@@ -106,10 +106,10 @@ data class TeamConfig(
 )
 
 private val teams = listOf(
-    TeamConfig("TEAM A", "TEAM A - aLu'Cristi", -2),
-    TeamConfig("TEAM B", "TEAM B - aLu'Primaru' 😉", 0),
-    TeamConfig("TEAM C", "TEAM C - aLu'Catuta", 2),
-    TeamConfig("TEAM D", "TEAM D - aLu'Ion", 4)
+    TeamConfig("TEAM A", "TEAM A", -2),
+    TeamConfig("TEAM B", "TEAM B", 0),
+    TeamConfig("TEAM C", "TEAM C", 2),
+    TeamConfig("TEAM D", "TEAM D", 4)
 )
 //............................................................
 //
